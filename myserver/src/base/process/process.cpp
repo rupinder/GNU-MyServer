@@ -305,7 +305,7 @@ int Process::exec (StartProcInfo* spi, bool waitEnd)
   }
 
   if (waitEnd)
-    return waitpid (pid, NULL, 0);
+    return gnulib::waitpid (pid, NULL, 0);
   else
     return pid;
 
@@ -391,7 +391,7 @@ int Process::isProcessAlive ()
   int ret;
   do
   {
-    ret = waitpid (pid, &status, WNOHANG);
+    ret = gnulib::waitpid (pid, &status, WNOHANG);
   }
   while (!ret && errno == EINTR);
   if (!ret)
@@ -409,7 +409,7 @@ int Process::isProcessAlive ()
     return 1;
 
   /* Waitpid it to free the resource.  */
-  waitpid (pid, &status, WNOHANG | WUNTRACED);
+  gnulib::waitpid (pid, &status, WNOHANG | WUNTRACED);
 
   return 0;
 # endif
