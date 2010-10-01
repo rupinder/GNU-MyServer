@@ -335,9 +335,7 @@ int ForkServer::executeProcess (StartProcInfo *spi,
     }
 
   if (waitEnd)
-    {
-      return waitpid (*pid, NULL, 0);
-    }
+    return gnulib::waitpid (*pid, NULL, 0);
 
   return 0;
 #endif
