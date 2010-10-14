@@ -56,14 +56,14 @@ public:
 
   void testLength ()
   {
-    u_int len = 10;
+    size_t len = 10;
     memBuff->setRealLength (len);
-    CPPUNIT_ASSERT_EQUAL (memBuff->getLength (), 0u);
+    CPPUNIT_ASSERT_EQUAL (memBuff->getLength (), (size_t) 0);
     CPPUNIT_ASSERT_EQUAL (memBuff->getRealLength (), len);
 
     *memBuff << (const char*)"1234567890";
 
-    CPPUNIT_ASSERT_EQUAL (memBuff->getLength (), 10u);
+    CPPUNIT_ASSERT_EQUAL (memBuff->getLength (), (size_t) 10);
 
     memBuff->setLength (len / 2);
     CPPUNIT_ASSERT_EQUAL (memBuff->getRealLength (), len);
@@ -73,11 +73,11 @@ public:
   void testFind ()
   {
     *memBuff << (const char*)"1234567890";
-    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), 4u);
+    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), (size_t) 4);
 
-    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5', 4), 4u);
+    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5', 4), (size_t) 4);
 
-    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5', 6), (u_int)-1);
+    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5', 6), (size_t) -1);
 
 
   }
@@ -85,11 +85,11 @@ public:
   void testReplace ()
   {
     *memBuff << (const char*)"1234567890";
-    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), 4u);
+    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), (size_t) 4);
 
     memBuff->replace ('5', '6');
 
-    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), (u_int)-1);
+    CPPUNIT_ASSERT_EQUAL (memBuff->find ('5'), (size_t) -1);
   }
 
   void testUintToStr ()
