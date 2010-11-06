@@ -290,6 +290,8 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
         }
       catch (FileNotFoundException & e)
         {}
+      catch (DirectoryException & e)
+        {}
 
       if (isDirectory)
         directory.assign (filenamePath);
@@ -487,7 +489,9 @@ int Http::preprocessHttpRequest (string &resource, bool yetmapped,
 
           /* Don't exit immediately if we find a non directory element, a
              location handler can be registered after it.  */
-          if (splitPoint && FilesUtility::notDirectory (curr.c_str ()))
+          /* FIXME: do only a stat.  */
+          if (splitPoint && FilesUtility::nodeExists (curr.c_str ())
+              && FilesUtility::notDirectory (curr.c_str ()))
             splitPoint = next;
 
           i = next;
@@ -692,6 +696,8 @@ Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
         {
           isDirectory = FilesUtility::isDirectory (td->filenamePath.c_str ());
         }
+      catch (DirectoryException & e)
+        {}
       catch (FileNotFoundException & e)
         {}
 
