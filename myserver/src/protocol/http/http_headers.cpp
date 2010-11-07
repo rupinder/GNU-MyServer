@@ -75,9 +75,9 @@ u_long HttpHeaders::buildHTTPResponseHeader (char *str,
        */
       HttpResponseHeader::Entry *e = response->other.get ("transfer-encoding");
 
-      if (!e || (e && e->value.find ("chunked", 0) == string::npos ))
+      if (!e || (e && e->value.find ("chunked", 0) == string::npos))
         {
-          pos += myserver_strlcpy (pos, "Content-length: ", MAX - (long)(pos - str));
+          pos += myserver_strlcpy (pos, "Content-Length: ", MAX - (long)(pos - str));
           pos += myserver_strlcpy (pos, response->contentLength.c_str (),
                                    MAX - (long)(pos - str));
           pos += myserver_strlcpy (pos, "\r\n", MAX - (long)(pos - str));

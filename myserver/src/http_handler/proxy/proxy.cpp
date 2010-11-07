@@ -216,6 +216,8 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   /* At this point we can modify the response struct before send it to the
      client.  */
   checkDataChunks (td, &keepalive, &useChunks);
+  if (td->response.contentLength.length ())
+    useChunks = false;
 
   td->response.setValue ("Connection", keepalive ? "keep-alive" : "close");
 
@@ -271,7 +273,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                         bool keepalive,
                         string *serverTransferEncoding)
 {
-  u_long contentLength = 0;
+  size_t contentLength = 0;
 
   size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
   u_long bufferDataSize = 0;
@@ -283,7 +285,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
   if (res->contentLength.length ())
     {
-      contentLength = atol (res->contentLength.c_str ());
+      contentLength = atoll (res->contentLength.c_str ());
       if (contentLength < 0)
         return HttpDataHandler::RET_FAILURE;
     }
@@ -313,10 +315,10 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                 break;
 
               HttpDataHandler::appendDataToHTTPChannel (td,
-                                                        td->buffer->getBuffer (),
-                                                        nbr, &(td->outputData),
-                                                        out, td->appendOutputs,
-                                                        useChunks);
+                                                       td->buffer->getBuffer (),
+                                                       nbr, &(td->outputData),
+                                                       out, td->appendOutputs,
+                                                       useChunks);
               written += nbr;
             }
         }
