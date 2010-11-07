@@ -21,7 +21,7 @@ lib_LTLIBRARIES = libmath_sum.la
 libmath_sum_la_SOURCES = math_sum.cpp
 libmath_sum_la_LDFLAGS = -shared -export-dynamic -no-install -no-undefined -module \
 										 -avoid-version -shrext .mscgi
-libmath_sum_la_LIBADD = ../../../../src/libmyserver.la ../../../../lib/libgnu.la
+libmath_sum_la_LIBADD = ../../../../src/libmyserver.la
 
 all: all-am math_sum.mscgi
 

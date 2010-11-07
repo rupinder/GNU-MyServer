@@ -21,7 +21,7 @@ lib_LTLIBRARIES = libpost.la
 libpost_la_SOURCES = post.cpp
 libpost_la_LDFLAGS = -shared -export-dynamic -no-install -no-undefined -module \
 										 -avoid-version -shrext .mscgi
-libpost_la_LIBADD = ../../../../src/libmyserver.la ../../../../lib/libgnu.la
+libpost_la_LIBADD = ../../../../src/libmyserver.la
 
 all: all-am post.mscgi
 
