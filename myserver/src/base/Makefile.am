@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 AM_CXXFLAGS=-I"$(top_builddir)/lib" -I"$(top_srcdir)/lib" -I"$(top_srcdir)"
-lib_LTLIBRARIES = libbase.la
+noinst_LTLIBRARIES = libbase.la
 libbase_la_SOURCES = utility.cpp
 SUBDIRS = base64 bitvec crypt dynamic_lib file exceptions files_cache \
 	  read_directory hash_map home_dir mem_buff multicast pipe process \

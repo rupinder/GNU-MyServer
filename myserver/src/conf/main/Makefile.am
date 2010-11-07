@@ -15,6 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 AM_CXXFLAGS=-I"$(top_builddir)/lib" -I"$(top_srcdir)/lib" -I"$(top_srcdir)"
-lib_LTLIBRARIES = libmain.la
+noinst_LTLIBRARIES = libmain.la
 libmain_la_SOURCES = main_configuration.cpp xml_main_configuration.cpp
 SUBDIRS =

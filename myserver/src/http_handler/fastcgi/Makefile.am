@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 AM_CXXFLAGS=-I"$(top_builddir)/lib" -I"$(top_srcdir)/lib" -I"$(top_srcdir)"
-lib_LTLIBRARIES = libfastcgi.la
+noinst_LTLIBRARIES = libfastcgi.la
 libfastcgi_la_SOURCES = fastcgi.cpp
 SUBDIRS =
 

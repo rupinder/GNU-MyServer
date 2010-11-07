@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 AM_CXXFLAGS=-I"$(top_builddir)/lib" -I"$(top_srcdir)/lib" -I"$(top_srcdir)"
-lib_LTLIBRARIES = libplugin.la
+noinst_LTLIBRARIES = libplugin.la
 libplugin_la_SOURCES =  plugin.cpp plugin_info.cpp plugins_manager.cpp 
 
 install:
