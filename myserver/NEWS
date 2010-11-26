@@ -1,5 +1,16 @@
 GNU myserver NEWS                                    -*- outline -*-
 
+* Noteworthy changes in release X.Y.Z
+
+** Bug fixes
+
+   Cope correctly with CGI payloads if the return code is not 2xx.
+
+   Detect correctly the last existing component before PATH_INFO.
+
+   The proxy handler doesn't use the chunked transfer encoding when the
+   content-length is known, both methods were used at the same time.
+
 * Noteworthy changes in release 0.10
 
 ** Bug fixes
