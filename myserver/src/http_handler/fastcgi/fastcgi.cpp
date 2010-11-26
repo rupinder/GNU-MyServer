@@ -235,11 +235,8 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
               switch (header.type)
                 {
                 case FCGISTDERR:
-                  con.sock.close ();
-                  td->http->raiseHTTPError (501);
-                  exit = 1;
-                  ret = HttpDataHandler::RET_FAILURE;
-                  break;
+
+                  /* Fall trough.  */
 
                 case FCGISTDOUT:
                   headerCompleted = false;
@@ -258,10 +255,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
                     }
 
                   if (headerCompleted)
-                    {
-                      exit = 1;
-                      break;
-                    }
+                    exit = 1;
 
                   break;
 
@@ -290,7 +284,8 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
                   toPad -= nbr;
                 }
             }
-        }while (!exit);
+        }
+      while (! exit);
 
       /* Send the last null chunk if needed.  */
       if (!responseCompleted && con.useChunks &&
