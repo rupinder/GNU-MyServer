@@ -313,50 +313,47 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
       ff->chain (&chain, td->mime->filters, td->connection->socket, &nbw, 1);
     }
 
-  if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
+  /* Send the rest of the data until we can read from the pipe.  */
+  for (;;)
     {
-      /* Send the rest of the data until we can read from the pipe.  */
-      for (;;)
+      nBytesRead = 0;
+      int aliveProcess = 0;
+      u_long ticks = getTicks () - procStartTime;
+      u_long timeout = td->http->getTimeout ();
+      if (timeout <= ticks
+          || stdOutFile.waitForData ((timeout - ticks) / 1000,
+                                     (timeout - ticks) % 1000) == 0)
         {
-          nBytesRead = 0;
-          int aliveProcess = 0;
-          u_long ticks = getTicks () - procStartTime;
-          u_long timeout = td->http->getTimeout ();
-          if (timeout <= ticks
-              || stdOutFile.waitForData ((timeout - ticks) / 1000,
-                                         (timeout - ticks) % 1000) == 0)
-            {
-              td->connection->host->warningsLogWrite (_("Cgi: process %i timeout"),
-                                                      cgiProc.getPid ());
-              break;
-            }
-
-          aliveProcess = !stdOutFile.pipeTerminated ();
-
-          /* Read data from the process standard output file.  */
-          stdOutFile.read (td->auxiliaryBuffer->getBuffer (),
-                           td->auxiliaryBuffer->getRealLength (),
-                           &nBytesRead);
-
-          if (!aliveProcess && !nBytesRead)
-            break;
-
-          if (nBytesRead)
-            HttpDataHandler::appendDataToHTTPChannel (td,
-                                             td->auxiliaryBuffer->getBuffer (),
-                                                      nBytesRead,
-                                                      &(td->outputData),
-                                                      &chain,
-                                                      td->appendOutputs,
-                                                      useChunks);
-
-          nbw += nBytesRead;
+          td->connection->host->warningsLogWrite (_("Cgi: process %i timeout"),
+                                                  cgiProc.getPid ());
+          break;
         }
 
-      /* Send the last null chunk if needed.  */
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      aliveProcess = !stdOutFile.pipeTerminated ();
+
+      /* Read data from the process standard output file.  */
+      stdOutFile.read (td->auxiliaryBuffer->getBuffer (),
+                       td->auxiliaryBuffer->getRealLength (),
+                       &nBytesRead);
+
+      if (!aliveProcess && !nBytesRead)
+        break;
+
+      if (nBytesRead)
+        HttpDataHandler::appendDataToHTTPChannel (td,
+                                                  td->auxiliaryBuffer->getBuffer (),
+                                                  nBytesRead,
+                                                  &(td->outputData),
+                                                  &chain,
+                                                  td->appendOutputs,
+                                                  useChunks);
+
+      nbw += nBytesRead;
     }
+
+  /* Send the last null chunk if needed.  */
+  if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
+    return HttpDataHandler::RET_FAILURE;
 
   /* Update the Content-length field for logging activity.  */
   td->sentData += nbw;
