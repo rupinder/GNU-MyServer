@@ -1645,11 +1645,11 @@ int Http::sendHTTPRedirect (const char *newURL)
 
   td->response.httpStatus = 302;
   td->auxiliaryBuffer->setLength (0);
-  *td->auxiliaryBuffer << "HTTP/1.1 302 Moved\r\nAccept-Ranges: bytes\r\n"
-          << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n"
-          << "Content-type: text/html\r\n"
-          << "Location: " << newURL << "\r\n"
-          << "Content-length: 0\r\n";
+  *td->auxiliaryBuffer << "HTTP/1.1 302 Moved\r\n"
+                       << "Accept-Ranges: bytes\r\n"
+                       << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n"
+                       << "Location: " << newURL << "\r\n"
+                       << "Content-length: 0\r\n";
 
   if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
     *td->auxiliaryBuffer << "Connection: keep-alive\r\n";
