@@ -759,7 +759,7 @@ int FastCgi::readHeader (FcgiContext *con, FcgiHeader* header, u_long started,
       nbr = con->sock.recv (buffer + readData, sizeof (FcgiHeader) - readData,
                             0, timeout - (ticks - started));
 
-      if (nbr == static_cast<size_t>(-1) || nbr == 0)
+      if (nbr == 0)
         return 1;
 
       readData += nbr;
