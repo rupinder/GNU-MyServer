@@ -616,11 +616,11 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
 
       dataRead += nbr;
 
-      if (!con->headerSent)
+      if (! con->headerSent)
         return handleHeader (con, chain, responseCompleted, onlyHeader);
     }
 
-  if (onlyHeader || con->td->response.getStatusType () != HttpResponseHeader::SUCCESSFUL)
+  if (onlyHeader)
     return 1;
 
   HttpDataHandler::appendDataToHTTPChannel (con->td,
@@ -713,8 +713,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
   con->headerSent = true;
 
   /* Flush the buffer if remaining data is present.  */
-  if (con->td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL &&
-      size - headerSize)
+  if (size - headerSize)
     {
       HttpDataHandler::appendDataToHTTPChannel (con->td,
                                                 con->td->buffer->getBuffer () + headerSize,
