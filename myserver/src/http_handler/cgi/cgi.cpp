@@ -172,40 +172,44 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
         }
       else
         {
-          if (! FilesUtility::nodeExists (tmpCgiPath.c_str ()))
+          if (tmpCgiPath.length () > 0)
             {
-              if (tmpCgiPath.length () > 0)
-                td->connection->host->warningsLogWrite
-                         (_("Cgi: cannot find the %s file")),
-                         tmpCgiPath.c_str ();
-              else
-                td->connection->host->warningsLogWrite
-                           (_("Cgi: Executable file not specified"));
+              if (! FilesUtility::nodeExists (tmpCgiPath.c_str ()))
+                {
+                  td->connection->host->warningsLogWrite
+                    (_("Cgi: cannot find the %s file")),
+                    tmpCgiPath.c_str ();
 
-              td->scriptPath.assign ("");
-              td->scriptFile.assign ("");
-              td->scriptDir.assign ("");
-              chain.clearAllFilters ();
-              return td->http->raiseHTTPError (500);
+                  td->scriptPath.assign ("");
+                  td->scriptFile.assign ("");
+                  td->scriptDir.assign ("");
+                  chain.clearAllFilters ();
+                  return td->http->raiseHTTPError (500);
+                }
+
+              spi.arg.assign (moreArg);
+              spi.arg.append (" ");
+
+              cmdLine << "\"" << td->cgiRoot << "/" << td->cgiFile << "\" "  << moreArg;
+
+              spi.cmd.assign (td->cgiRoot);
+              spi.cmd.append ("/");
+              spi.cmd.append (td->cgiFile);
+            }
+          else
+            {
+              spi.cmd.append ("./");
+              spi.cmd.append (td->scriptFile);
             }
 
-          spi.arg.assign (moreArg);
-          spi.arg.append (" ");
+          spi.arg.append (" ./");
           spi.arg.append (td->scriptFile);
 
-          cmdLine << "\"" << td->cgiRoot << "/" << td->cgiFile << "\" "
-                  << moreArg << " " << td->scriptFile;
+          cmdLine << " ./" << td->scriptFile;
 
-          spi.cmd.assign (td->cgiRoot);
-          spi.cmd.append ("/");
-          spi.cmd.append (td->cgiFile);
-
-          if (td->cgiFile.length () > 4 && td->cgiFile[0] == 'n'
-              && td->cgiFile[1] == 'p' && td->cgiFile[2] == 'h'
-              && td->cgiFile[3] == '-' )
-            nph = true;
-          else
-            nph = false;
+          nph = td->scriptFile.length () > 4 && td->scriptFile[0] == 'n'
+            && td->scriptFile[1] == 'p' && td->scriptFile[2] == 'h'
+            && td->scriptFile[3] == '-';
         }
 
       /*
