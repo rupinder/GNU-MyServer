@@ -2,7 +2,8 @@ dnl GNU MySever configuration script
 dnl
 dnl GNU MyServer
 dnl
-dnl Copyright (C) 2002-2010 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+dnl 2011 Free Software Foundation, Inc.
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by

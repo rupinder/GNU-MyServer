@@ -1,7 +1,8 @@
 @c -*-texinfo-*-
 @c GNU MyServer
 @c
-@c Copyright (C) 2002-2010 Free Software Foundation, Inc.
+@c Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+@c 2011 Free Software Foundation, Inc.
 @c
 @c This program is free software; you can redistribute it and/or modify
 @c it under the terms of the GNU General Public License as published by
