@@ -85,18 +85,18 @@ public:
   int sendHTTPResource (string& filename,
                         bool systemrequest = false,
                         bool onlyHeader = false,
-                        bool yetMapped = false);
+                        bool mapped = false);
 
   int putHTTPRESOURCE (string &filename,
                        bool systemrequest = false,
                        bool onlyHeader = false,
-                       bool yetMapped = false);
+                       bool mapped = false);
 
   int optionsHTTPRESOURCE (string &filename,
-                           bool yetMapped = false);
+                           bool mapped = false);
 
   int traceHTTPRESOURCE (string& filename,
-                         bool yetMapped = false);
+                         bool mapped = false);
 
   bool allowMethod (const char *name);
 
@@ -146,12 +146,12 @@ public:
   static int loadProtocolStatic ();
 
   u_long getTimeout ();
-  int preprocessHttpRequest (string& filename, bool yetmapped,
+  int preprocessHttpRequest (string& filename, bool mapped,
                              int* permissions, bool systemrequest);
 
   int getFilePermissions (string& filename, string& directory,
                           string& file, string &filenamePath,
-                          bool yetmapped, int* permissions);
+                          bool mapped, int* permissions);
 
   SecurityToken *getSecurityToken (){return &(td->securityToken);}
   HttpProtocol *getStaticData () {return staticData;}

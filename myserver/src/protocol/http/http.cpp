@@ -663,7 +663,7 @@ HttpUserData::reset ()
  */
 int
 Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
-                        bool yetmapped)
+                        bool mapped)
 {
   /*
     With this code we manage a request of a file or a directory or anything
@@ -682,7 +682,7 @@ Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
       filename.assign (uri);
       td->buffer->setLength (0);
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &td->permissions,
+      ret = Http::preprocessHttpRequest (filename, mapped, &td->permissions,
                                          systemrequest);
       if (ret != 200)
         return raiseHTTPError (ret);
@@ -933,11 +933,11 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
         staticData->getDynCmdManager ()->getHttpCommand (td->request.cmd);
 
       /* If the used method supports POST data, read it.  */
-      if ((!td->request.cmd.compare ("POST")) ||
-          (!td->request.cmd.compare ("PUT")) ||
-          (!td->request.cmd.compare ("LOCK")) ||
-          (!td->request.cmd.compare ("PROPFIND")) ||
-          (dynamicCommand && dynamicCommand->acceptData ()))
+      if ((!td->request.cmd.compare ("POST"))
+          || (!td->request.cmd.compare ("PUT"))
+          || (!td->request.cmd.compare ("LOCK"))
+          || (!td->request.cmd.compare ("PROPFIND"))
+          || (dynamicCommand && dynamicCommand->acceptData ()))
         {
           int httpErrorCode;
           int readPostRet;

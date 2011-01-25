@@ -39,7 +39,7 @@ public:
   virtual int acceptData () = 0;
   virtual int send (HttpThreadContext* context, ConnectionPtr connection,
                     string& Uri, bool systemrequest = false,
-                    bool onlyHeader = false, bool yetmapped = false) = 0;
+                    bool onlyHeader = false, bool mapped = false) = 0;
 private:
   string name;
 };
