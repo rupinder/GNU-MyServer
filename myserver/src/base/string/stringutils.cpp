@@ -655,6 +655,20 @@ void gotoNextLine (char** cmd)
 
 }
 
+#define TRANSLATE_ESCAPE_STRING_BODY                                    \
+  if ((str[i] == '%') && str[i + 1] && str[i + 2])                      \
+    {                                                                   \
+      str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));  \
+      i = i + 3;                                                        \
+    }                                                                   \
+  else if (str[i] == '+')                                               \
+    str[j] = ' ';                                                       \
+  else                                                                  \
+    str[j] = str[i++];                                                  \
+                                                                        \
+  j++;
+
+
 /*!
   Translates HTTP escape sequences.
  */
@@ -665,19 +679,9 @@ void translateEscapeString (char *str)
   j = 0;
   while (str[i] != 0)
     {
-      if ((str[i] == '%') && (str[i + 1] != 0) && (str[i + 2] != 0))
-        {
-          str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));
-          i = i + 3;
-        }
-      else
-        {
-          str[j] = str[i];
-          i++;
-        }
-      j++;
+      TRANSLATE_ESCAPE_STRING_BODY
     }
-  str[j] = 0;
+  str[j] = '\0';
 }
 
 /*!
@@ -689,21 +693,12 @@ void translateEscapeString (string& str)
   i = 0;
   j = 0;
   len = str.length ();
-  while (len--)
+  while (i < len)
     {
-      if ((str[i] == '%') && (str[i + 1] != 0) && (str[i + 2] != 0))
-        {
-          str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));
-          i = i + 3;
-        }
-      else
-        {
-          str[j] = str[i];
-          i++;
-        }
-      j++;
+      TRANSLATE_ESCAPE_STRING_BODY
     }
-  str[j] = 0;
+
+  str.erase (j);
 }
 
 /*!
