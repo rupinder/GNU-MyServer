@@ -235,7 +235,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       if (lastMT == -1)
         return td->http->raiseHTTPError (500);
 
-      getRFC822GMTTime (lastMT, tmpTime, 32);
+      getRFC822GMTTime (lastMT, tmpTime);
       td->response.setValue ("last-modified", tmpTime.c_str ());
 
       HttpRequestHeader::Entry *ifModifiedSince =

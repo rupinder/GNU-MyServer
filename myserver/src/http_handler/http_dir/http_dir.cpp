@@ -251,7 +251,7 @@ void HttpDir::generateElement (MemBuf &out,
       break;
 
     case 't':
-      getRFC822GMTTime (file.time_write, fileTime, 32);
+      getRFC822GMTTime (file.time_write, fileTime);
       out << "<td>";
       out << fileTime ;
       out << "</td>\r\n";

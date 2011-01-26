@@ -653,7 +653,7 @@ LogManager::log (const void* owner, const string & type, LoggingLevel level,
           char time[38];
           int len;
           time[0] = '[';
-          getRFC822GMTTime (&time[1], 32);
+          getRFC822GMTTime (&time[1]);
           len = strlen (time);
           time[len + 0] = ']';
           time[len + 1] = ' ';

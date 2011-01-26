@@ -123,7 +123,7 @@ int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
       if (ret != 200)
         return raiseHTTPError (ret);
 
-      getRFC822GMTTime (time, 32);
+      getRFC822GMTTime (time);
       td->auxiliaryBuffer->setLength (0);
       *td->auxiliaryBuffer << "HTTP/1.1 200 OK\r\n";
       *td->auxiliaryBuffer << "Date: " << time;
@@ -163,7 +163,7 @@ int Http::traceHTTPRESOURCE (string& filename, bool yetmapped)
         return raiseHTTPError (ret);
 
       tmp.intToStr (contentLength, tmpStr, 12);
-      getRFC822GMTTime (time, 32);
+      getRFC822GMTTime (time);
 
       td->auxiliaryBuffer->setLength (0);
       *td->auxiliaryBuffer << "HTTP/1.1 200 OK\r\n";
@@ -771,7 +771,7 @@ int Http::logHTTPaccess ()
 
       *td->auxiliaryBuffer << " [";
 
-      getLocalLogFormatDate (time, 32);
+      getLocalLogFormatDate (time);
       *td->auxiliaryBuffer << time << "] \"";
 
       if (td->request.cmd.length ())
@@ -1289,7 +1289,7 @@ int Http::requestAuthorization ()
     }
 
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time << "\r\n\r\n";
 
   if (td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
@@ -1477,7 +1477,7 @@ Internal Server Error\n\
   *td->auxiliaryBuffer << tmp;
   *td->auxiliaryBuffer << "\r\n";
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time;
   *td->auxiliaryBuffer << "\r\n\r\n";
 
@@ -1657,7 +1657,7 @@ int Http::sendHTTPRedirect (const char *newURL)
     *td->auxiliaryBuffer << "Connection: close\r\n";
 
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time
           << "\r\n\r\n";
   td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
@@ -1683,7 +1683,7 @@ int Http::sendHTTPNonModified ()
   else
     *td->auxiliaryBuffer << "Connection: close\r\n";
 
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
 
   *td->auxiliaryBuffer << "Date: " << time << "\r\n\r\n";
 

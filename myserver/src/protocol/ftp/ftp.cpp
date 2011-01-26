@@ -434,7 +434,7 @@ void Ftp::logAccess (int nReplyCode, const std::string & sCustomText)
   string time;
   char msgCode[12];
   sprintf (msgCode, "%i", nReplyCode);
-  getLocalLogFormatDate (time, 32);
+  getLocalLogFormatDate (time);
 
   td.auxiliaryBuffer->setLength (0);
   *td.auxiliaryBuffer << time
@@ -1769,7 +1769,7 @@ Ftp::list (const std::string & sParam /*= ""*/ )
           perm[9] = guestMask & MYSERVER_PERMISSION_EXECUTE ? 'x' : '-';
 
           string date;
-          const char *datePtr = getRFC822LocalTime (fd.time_write, date, 32);
+          const char *datePtr = getRFC822LocalTime (fd.time_write, date);
 
           char dateFtpFormat[13];
 
@@ -1855,7 +1855,7 @@ Ftp::list (const std::string & sParam /*= ""*/ )
           perm[9] = guestMask & MYSERVER_PERMISSION_EXECUTE ? 'x' : '-';
 
           string date;
-          const char *datePtr = getRFC822LocalTime (fd.time_write, date, 32);
+          const char *datePtr = getRFC822LocalTime (fd.time_write, date);
 
           char dateFtpFormat[13];
 

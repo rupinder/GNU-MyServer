@@ -452,7 +452,7 @@ int ControlProtocol::addToLog (int retCode, ConnectionPtr con, char *buffer,
                                int bufferSize, ControlHeader &header)
 {
   string time;
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   gnulib::snprintf (buffer, bufferSize, "%s [%s] %s:%s:%s - %s - %i",
                     con->getIpAddr (), time.c_str (), header.getCommand (),
                     header.getVersion (), header.getOptions (),

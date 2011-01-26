@@ -43,21 +43,21 @@
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822GMTTime (string& out,int len)
+const char *getRFC822GMTTime (string& out)
 {
   time_t ltime;
   time ( &ltime );
-  return getRFC822GMTTime (ltime, out, len);
+  return getRFC822GMTTime (ltime, out);
 }
 
 /*!
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822GMTTime (const time_t t, string& out, int len)
+const char *getRFC822GMTTime (const time_t t, string& out)
 {
   char buff[32];
-  getRFC822GMTTime (t, buff, 32);
+  getRFC822GMTTime (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -66,21 +66,21 @@ const char *getRFC822GMTTime (const time_t t, string& out, int len)
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822LocalTime (string& out,int len)
+const char *getRFC822LocalTime (string& out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822LocalTime (ltime, out, len);
+  return getRFC822LocalTime (ltime, out);
 }
 
 /*!
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822LocalTime (const time_t t, string &out,int len)
+const char *getRFC822LocalTime (const time_t t, string &out)
 {
   char buff[32];
-  getRFC822LocalTime (t, buff, 32);
+  getRFC822LocalTime (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -88,23 +88,24 @@ const char *getRFC822LocalTime (const time_t t, string &out,int len)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (char* out, int len)
+const char *getRFC822GMTTime (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822GMTTime (ltime, out, len);
+  return getRFC822GMTTime (ltime, out);
 }
 
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (const time_t ltime, char* out, int /*!len*/)
+const char *getRFC822GMTTime (const time_t ltime, char* out)
 {
   char *asct;
+  char buffer[32];
   u_long ind = 0;
   tm* gmTime = gmtime (&ltime);
   gmTime->tm_year += 1900;
-  asct= asctime (gmTime);
+  asct = asctime_r (gmTime, buffer);
   out[ind++]= asct[0];
   out[ind++]= asct[1];
   out[ind++]= asct[2];
@@ -152,6 +153,7 @@ time_t getTime (const char* str)
   int c = 0;
   int i;
   tm t;
+  memset (&t, 0, sizeof (t));
   for (i = 0; i < 30; i++)
     {
       if (str[c] == ',')
@@ -317,25 +319,26 @@ time_t getTime (const char* str)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (char* out, int len)
+const char *getRFC822LocalTime (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822LocalTime (ltime, out, len);
+  return getRFC822LocalTime (ltime, out);
 }
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (const time_t ltime, char* out, int /*!len*/)
+const char *getRFC822LocalTime (const time_t ltime, char* out)
 {
   char *asct;
   tm result;
   u_long ind = 0;
+  char buffer[32];
 
   myserver_localtime (&ltime, &result);
 
   result.tm_year += 1900;
-  asct = asctime (&result);
+  asct = asctime_r (&result, buffer);
   out[ind++] = asct[0];
   out[ind++] = asct[1];
   out[ind++] = asct[2];
@@ -377,31 +380,31 @@ const char *getRFC822LocalTime (const time_t ltime, char* out, int /*!len*/)
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (char* out, int len)
+const char* getLocalLogFormatDate (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getLocalLogFormatDate (ltime, out, len);
+  return getLocalLogFormatDate (ltime, out);
 }
 
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (char* out, int len)
+const char* getGMTLogFormatDate (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getGMTLogFormatDate (ltime, out, len);
+  return getGMTLogFormatDate (ltime, out);
 }
 
 
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (const time_t t, string& out, int len)
+const char* getLocalLogFormatDate (const time_t t, string& out)
 {
   char buff[32];
-  getLocalLogFormatDate (t, buff, len);
+  getLocalLogFormatDate (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -409,20 +412,20 @@ const char* getLocalLogFormatDate (const time_t t, string& out, int len)
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (const time_t t, string& out, int len)
+const char* getGMTLogFormatDate (const time_t t, string& out)
 {
   char buff[32];
-  getGMTLogFormatDate (t, buff, len);
+  getGMTLogFormatDate (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (string& out, int len)
+const char* getLocalLogFormatDate (string& out)
 {
   char buff[32];
-  getLocalLogFormatDate (buff, len);
+  getLocalLogFormatDate (buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -430,10 +433,10 @@ const char* getLocalLogFormatDate (string& out, int len)
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (string& out, int len)
+const char* getGMTLogFormatDate (string& out)
 {
   char buff[32];
-  getGMTLogFormatDate (buff, len);
+  getGMTLogFormatDate (buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -442,19 +445,19 @@ const char* getGMTLogFormatDate (string& out, int len)
   Get a string in the format "day/month/year:hour:minute:second offset"
   for the local zone.
  */
-const char* getLocalLogFormatDate (const time_t t, char* out, int len)
+const char* getLocalLogFormatDate (const time_t t, char* out)
 {
   int offset = 0;
   time_t ltime;
   time (&ltime);
   char *asct;
   tm gmTime;
-  myserver_localtime (&ltime, &gmTime );
-  if (len < 25)
-    return 0;
+  char buffer[32];
+
+  myserver_localtime (&ltime, &gmTime);
 
   gmTime.tm_year += 1900;
-  asct = asctime (&gmTime);
+  asct = asctime_r (&gmTime, buffer);
   out[0] = asct[8] != ' ' ? asct[8] : '0';
   out[1] = asct[9];
   out[2] = '/';
@@ -511,20 +514,18 @@ const char* getLocalLogFormatDate (const time_t t, char* out, int len)
   Get a string in the format "day/month/year:hour:minute:second offset"
   for the GMT zone.
  */
-const char* getGMTLogFormatDate (const time_t t, char* out, int len)
+const char* getGMTLogFormatDate (const time_t t, char* out)
 {
   time_t ltime;
   time (&ltime);
   char *asct;
   tm result;
+  char buffer[32];
 
   myserver_localtime ( &ltime, &result );
 
-  if (len < 25)
-    return 0;
-
   result.tm_year += 1900;
-  asct = asctime (&result);
+  asct = asctime_r (&result, buffer);
   out[0] = asct[8] != ' ' ? asct[8] : '0';
   out[1] = asct[9];
   out[2] = '/';
@@ -662,7 +663,10 @@ void gotoNextLine (char** cmd)
       i = i + 3;                                                        \
     }                                                                   \
   else if (str[i] == '+')                                               \
-    str[j] = ' ';                                                       \
+    {                                                                   \
+      str[j] = ' ';                                                     \
+      i++;                                                              \
+    }                                                                   \
   else                                                                  \
     str[j] = str[i++];                                                  \
                                                                         \

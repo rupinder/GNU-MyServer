@@ -79,7 +79,7 @@ FileStream::makeNewFileName (string oldFileName)
   FilesUtility::splitPath (oldFileName, filedir, filename);
   FilesUtility::getFileExt (ext, filename);
 
-  getRFC822LocalTime (time, 32);
+  getRFC822LocalTime (time);
   time = trim (time.substr (5, 32));
 
   for (int i = 0; i < static_cast<int>(time.length ()); i++)
