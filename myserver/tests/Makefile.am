@@ -75,6 +75,7 @@ test_suite_SOURCES =  	main.cpp				\
 			test_socket_pair.cpp			\
 			test_socket_stream_creator.cpp		\
 			test_ssl_socket.cpp			\
+			test_stringutils.cpp \
 			test_thread.cpp				\
 			test_unix_socket.cpp			\
 			test_url.cpp				\
