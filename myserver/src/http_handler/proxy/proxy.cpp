@@ -61,7 +61,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       req.setValue (e->name.c_str (), e->value.c_str ());
     }
 
-  if (stringcmpi (destUrl.getProtocol (), "http"))
+  if (strcasecmp (destUrl.getProtocol (), "http"))
     {
       td->connection->host->warningsLogWrite
         ("Proxy: %s is not a supported protocol",

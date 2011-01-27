@@ -823,7 +823,7 @@ int getEndLine (const char* str, int max)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmpi (string const &a, string const &b)
+int strcasecmp (string const &a, string const &b)
 {
   return strcasecmp (a.c_str (), b.c_str ());
 }
@@ -835,7 +835,7 @@ int stringcmpi (string const &a, string const &b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmpi (string const &a, const char* b)
+int strcasecmp (string const &a, const char* b)
 {
   return strcasecmp (a.c_str (), b);
 }
@@ -847,7 +847,7 @@ int stringcmpi (string const &a, const char* b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmp (const string& a, const string& b)
+int strcmp (const string& a, const string& b)
 {
   return strcmp (a.c_str (), b.c_str ());
 }
@@ -859,7 +859,7 @@ int stringcmp (const string& a, const string& b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmp (string const &a, const char* b)
+int strcmp (string const &a, const char* b)
 {
   return strcmp (a.c_str (), b);
 }

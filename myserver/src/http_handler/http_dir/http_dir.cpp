@@ -50,7 +50,7 @@ using namespace std;
 bool HttpDir::compareFileStructByName (HttpDir::FileStruct i,
                                        HttpDir::FileStruct j)
 {
-  return stringcmpi (i.name, j.name) < 0 ? true : false;
+  return strcasecmp (i.name, j.name) < 0 ? true : false;
 }
 
 /*!

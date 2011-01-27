@@ -974,7 +974,7 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
           HttpRequestHeader::Entry *connection
             = td->request.other.get ("connection");
           if (connection)
-            keepalive = !stringcmpi (connection->value.c_str (), "keep-alive")
+            keepalive = !strcasecmp (connection->value.c_str (), "keep-alive")
               && !td->request.ver.compare ("HTTP/1.1");
 
           if (! td->request.ver.compare ("HTTP/1.1")
@@ -1333,7 +1333,7 @@ int Http::raiseHTTPError (int ID)
 
       td->lastError = ID;
 
-      if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+      if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
         td->response.setValue ("connection", "keep-alive");
 
       td->response.httpStatus = ID;
@@ -1645,7 +1645,7 @@ int Http::sendHTTPRedirect (const char *newURL)
                        << "Location: " << newURL << "\r\n"
                        << "Content-length: 0\r\n";
 
-  if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+  if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
     *td->auxiliaryBuffer << "Connection: keep-alive\r\n";
   else
     *td->auxiliaryBuffer << "Connection: close\r\n";
@@ -1672,7 +1672,7 @@ int Http::sendHTTPNonModified ()
   *td->auxiliaryBuffer << "HTTP/1.1 304 Not Modified\r\nAccept-Ranges: bytes\r\n"
           << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n";
 
-  if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+  if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
     *td->auxiliaryBuffer << "Connection: keep-alive\r\n";
   else
     *td->auxiliaryBuffer << "Connection: close\r\n";

@@ -226,7 +226,7 @@ void Vhost::removeHost (const char *host)
       /*
         If this is the virtual host with the right IP.
        */
-      if (!stringcmp (sr->name, host))
+      if (!strcmp (sr->name, host))
         {
           hostList.erase (i);
           return;
@@ -252,7 +252,7 @@ int Vhost::isHostAllowed (const char* host)
       if (sr->regex.isCompiled () &&!sr->regex.exec (host, 1, &pm, REG_NOTBOL))
         return 1;
 
-      if (!stringcmp (sr->name, host))
+      if (!strcmp (sr->name, host))
         return 1;
 
       i++;

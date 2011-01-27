@@ -1519,7 +1519,7 @@ void
 Ftp::help (const std::string & sCmd /* = "" */ )
 {
   waitDataConnection ();
-  if (sCmd.empty () || stringcmpi (sCmd, "SITE") == 0)
+  if (sCmd.empty () || strcasecmp (sCmd, "SITE") == 0)
     ftpReply (214);
   else
     ftpReply (502);

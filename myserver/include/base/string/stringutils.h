@@ -72,10 +72,10 @@ string trim (string const& s, string const&t = " ");
 string trimLeft ( string const &s , string const &t = " " );
 string trimRight (string const &s , string const &t = " " );
 
-int stringcmpi (string const &a, string const &b);
-int stringcmp (string const &a, string const &b);
+int strcasecmp (string const &a, string const &b);
+int strcmp (string const &a, string const &b);
 
-int stringcmpi (string const &a, const char* b);
-int stringcmp (string const &a, const char* b);
+int strcasecmp (string const &a, const char* b);
+int strcmp (string const &a, const char* b);
 
 #endif

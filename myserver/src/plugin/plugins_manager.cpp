@@ -101,10 +101,10 @@ PluginsManager::loadOptions (Server *server)
         plugin.assign (*node->getAttr (pluginKey));
 
       if (node->getAttr (globalKey))
-        global = stringcmpi (*node->getAttr (globalKey), "YES") == 0;
+        global = strcasecmp (*node->getAttr (globalKey), "YES") == 0;
 
       if (node->getAttr (enabledKey))
-        enabled = stringcmpi (*node->getAttr (enabledKey), "YES") == 0;
+        enabled = strcasecmp (*node->getAttr (enabledKey), "YES") == 0;
 
       if (plugin.length ())
         addPluginInfo (plugin, new PluginInfo (plugin, enabled, global));

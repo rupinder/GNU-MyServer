@@ -61,7 +61,7 @@ int MimeRecord::addFilter (const char* n, bool acceptDuplicate)
       list<string>::iterator i = filters.begin ();
       for (; i != filters.end (); i++)
         {
-          if (!stringcmpi (*i, n))
+          if (!strcasecmp (*i, n))
             return 0;
         }
     }
