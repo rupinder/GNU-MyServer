@@ -190,6 +190,8 @@ public:
   HttpProtocol ()
   {
     protocolOptions = 0;
+    timeout = 0;
+    allowVhostMime = false;
   }
 
   virtual ~HttpProtocol ()
@@ -223,10 +225,10 @@ public:
   DynHttpManagerList *getDynManagerList (){return &dynManagerList;}
 
   u_long getTimeout () {return timeout;}
-  int getAllowVhostMime () {return allowVhostMime;}
+  bool getAllowVhostMime () {return allowVhostMime;}
 private:
   u_long timeout;
-  int allowVhostMime;
+  bool allowVhostMime;
 
   DynHttpCommandManager dynCmdManager;
   DynHttpManagerList dynManagerList;

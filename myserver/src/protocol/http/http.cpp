@@ -72,13 +72,7 @@ int HttpProtocol::loadProtocol ()
 
   data = Server::getInstance ()->getData ("vhost.allow_mime");
   if (data)
-    {
-
-      if (! strcasecmp (data, "YES"))
-        allowVhostMime = 1;
-      else
-        allowVhostMime = 0;
-    }
+    allowVhostMime = !strcasecmp (data, "YES");
 
   data = Server::getInstance ()->getData ("cgi.timeout");
   if (data)
