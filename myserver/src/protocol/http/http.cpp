@@ -343,13 +343,18 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
            MYSERVER_SECURITY_CONF | MYSERVER_VHOST_CONF | MYSERVER_SERVER_CONF);
       *permissions = td->securityToken.getMask ();
 
+      /* By default use the Basic authentication scheme.  */
+      td->authScheme = HTTP_AUTH_SCHEME_BASIC;
+
       /* Check if we have to use digest for the current directory.  */
       if (authType && ! strcasecmp (authType, "Digest"))
         {
           HttpUserData* hud = static_cast<HttpUserData*>
                                                (td->connection->protocolBuffer);
 
-          if (!td->request.auth.compare ("Digest"))
+          if (td->request.auth.compare ("Digest"))
+            *permissions = 0;
+          else
             {
               if (!hud->digestChecked)
                 {
@@ -372,14 +377,9 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
                   *permissions = td->securityToken.getProvidedMask ();
                 }
             }
-          else
-            *permissions = 0;
 
           td->authScheme = HTTP_AUTH_SCHEME_DIGEST;
         }
-      /* By default use the Basic authentication scheme. */
-      else
-        td->authScheme = HTTP_AUTH_SCHEME_BASIC;
     }
   catch (FileNotFoundException & e)
     {
