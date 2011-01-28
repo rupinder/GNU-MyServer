@@ -40,7 +40,7 @@ public:
     {
     }
 
-    Entry (string& n, string& v) : name (NULL), value (NULL)
+    Entry (const string &n, const string &v) : name (NULL), value (NULL)
     {
       name.assign (n);
       value.assign (v);

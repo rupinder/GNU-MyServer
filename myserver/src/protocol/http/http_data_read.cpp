@@ -255,11 +255,12 @@ int HttpDataRead::readPostData (HttpThreadContext* td, int* httpRetCode)
     td->request.other.get ("transfer-encoding");
 
   /* Specify a type if it not specified by the client.  */
-  if (contentType == 0)
+  if (contentType == NULL)
     {
-      contentType = new HttpRequestHeader::Entry ();
-      contentType->name.assign ("content-type");
-      contentType->value.assign ("application/x-www-form-urlencoded");
+      contentType = new HttpRequestHeader::Entry ("content-type",
+                                                  "application/x-www-form-urlencoded");
+      td->request.other.put (contentType->name, contentType);
+
     }
   else if (contentType->value.length () == 0)
     contentType->value.assign ("application/x-www-form-urlencoded");
