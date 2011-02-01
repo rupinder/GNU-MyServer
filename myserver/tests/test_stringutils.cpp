@@ -142,6 +142,8 @@ public:
     CPPUNIT_ASSERT (translateSingleEscapeString ("foo+", "foo "));
     CPPUNIT_ASSERT (translateSingleEscapeString ("fooo+", "fooo "));
     CPPUNIT_ASSERT (translateSingleEscapeString ("%301%323%34", "01234"));
+    CPPUNIT_ASSERT (translateSingleEscapeString ("%c3%a2%c2%9c%c2%88", "✈"));
+    CPPUNIT_ASSERT (translateSingleEscapeString ("%c3%a2%c2%9c%c2%88%c3%a2%c2%9c%c2%88", "✈✈"));
   }
 
 private:
