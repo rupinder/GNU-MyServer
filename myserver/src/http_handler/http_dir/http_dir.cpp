@@ -246,7 +246,7 @@ void HttpDir::generateElement (MemBuf &out,
       out << "<td><a href=\"";
       out << linkPrefix << name;
       out << "\">" ;
-      out << name;
+      out << file.name;
       out << "</a></td>\r\n";
       break;
 
@@ -402,11 +402,9 @@ int HttpDir::send (HttpThreadContext* td,
         the browse directory insert it in the page.
        */
       if (cssFile)
-        {
-          *td->auxiliaryBuffer << "<link rel=\"stylesheet\" href=\""
-                               << cssFile
-                               << "\" type=\"text/css\" media=\"all\"/>\r\n";
-        }
+        *td->auxiliaryBuffer << "<link rel=\"stylesheet\" href=\""
+                             << cssFile
+                             << "\" type=\"text/css\" media=\"all\"/>\r\n";
 
       *td->auxiliaryBuffer << "</head>\r\n";
 
@@ -613,27 +611,44 @@ int HttpDir::send (HttpThreadContext* td,
  */
 void HttpDir::formatHtml (string& in, string& out)
 {
-  string::size_type pos = 0;
-  out.assign (in);
-  /*
-    Replace characters in the ranges 32-47 58-64 123-126 160-255
-    with "&#CODE;".
-   */
-  for (pos = 0; out[pos] != '\0'; pos++)
+  char tmp[2] = {'\0', '\0'};
+
+  for (int i = 0; i < in.size (); i++)
     {
-      if (((u_char) out[pos] >= 32
-           && (u_char) out[pos] <= 47)
-          || ((u_char) out[pos] >= 58
-              && (u_char) out[pos] <= 64)
-          || ((u_char) out[pos] >= 123
-              && (u_char) out[pos] <= 126)
-          || ((u_char) out[pos] >= 160
-              && (u_char) out[pos] < 255))
+      unsigned char c = (unsigned char) in[i];
+      if ((c >= 'a' && c <= 'z')
+          || (c >= 'A' && c <= 'Z')
+          || (c >= '0' && c <= '9')
+          || c == '-' || c == '_'
+          || c == '.' || c == '!'
+          || c == '~' || c == '*'
+          || c == '\'' || c == '('
+          || c == ')')
         {
-          ostringstream os;
-          os << "&#" << (int)((unsigned char) out[pos]) << ";";
-          out.replace (pos, 1, os.str ());
-          pos += os.str ().length () - 1;
+          tmp[0] = c;
+          out.append (tmp);
         }
+      else if (c == ' ')
+        out.append ("+");
+      else if (c <= 0x007f)
+        {
+          char buf[3];
+          sprintf (buf, "%%%x", c);
+          out.append (buf);
+        }
+      else if (c <= 0x07FF)
+        {
+          char buf[5];
+          sprintf (buf, "%%%x%%%x", 0xc0 | c >> 6, 0x80 | (c & 0x3F));
+          out.append (buf);
+        }
+      else
+        {
+          char buf[7];
+          sprintf (buf, "%%%x%%%x%%%x", 0xe0 | (c >> 12),
+                   0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+          out.append (buf);
+        }
+
     }
 }
