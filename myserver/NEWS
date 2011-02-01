@@ -11,6 +11,10 @@ GNU myserver NEWS                                    -*- outline -*-
    The proxy handler doesn't use the chunked transfer encoding when the
    content-length is known, both methods were used at the same time.
 
+** New features
+
+   Support UTF-8 encoded URLs.
+
 * Noteworthy changes in release 0.10
 
 ** Bug fixes

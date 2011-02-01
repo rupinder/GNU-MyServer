@@ -246,6 +246,9 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
 
       td->securityToken.setVhost (td->connection->host);
 
+      if (!yetmapped)
+        translateEscapeString (resource);
+
       FilesUtility::splitPath (resource, directory, file);
       FilesUtility::completePath (directory);
 
@@ -267,7 +270,6 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
             If the client tries to access files that aren't in the web directory
             send a HTTP 401 error page.
            */
-          translateEscapeString (resource);
           if ((resource[0] != '\0')
               && (FilesUtility::getPathRecursionLevel (resource) < 1))
             return 401;

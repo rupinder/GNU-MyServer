@@ -659,18 +659,52 @@ void gotoNextLine (char** cmd)
 #define TRANSLATE_ESCAPE_STRING_BODY                                    \
   if ((str[i] == '%') && str[i + 1] && str[i + 2])                      \
     {                                                                   \
-      str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));  \
+      b = (char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));      \
       i = i + 3;                                                        \
     }                                                                   \
   else if (str[i] == '+')                                               \
     {                                                                   \
-      str[j] = ' ';                                                     \
+      b = ' ';                                                          \
       i++;                                                              \
     }                                                                   \
   else                                                                  \
-    str[j] = str[i++];                                                  \
+    b = str[i++];                                                       \
                                                                         \
-  j++;
+  if ((b & 0xc0) == 0x80)                                               \
+    {                                                                   \
+      sum = (sum << 6) | (b & 0x3f);                                    \
+      if (--more == 0)                                                  \
+        str[j++] = sum;                                                 \
+    }                                                                   \
+  else if ((b & 0x80) == 0x00)                                          \
+    {                                                                   \
+      str[j++] = b;                                                     \
+    }                                                                   \
+  else if ((b & 0xe0) == 0xc0)                                          \
+    {                                                                   \
+      sum = b & 0x1f;                                                   \
+      more = 1;                                                         \
+    }                                                                   \
+  else if ((b & 0xf0) == 0xe0)                                          \
+    {                                                                   \
+      sum = b & 0x0f;                                                   \
+      more = 2;                                                         \
+    }                                                                   \
+  else if ((b & 0xf8) == 0xf0)                                          \
+    {                                                                   \
+      sum = b & 0x07;                                                   \
+      more = 3;                                                         \
+    }                                                                   \
+  else if ((b & 0xfc) == 0xf8)                                          \
+    {                                                                   \
+      sum = b & 0x03;                                                   \
+      more = 4;                                                         \
+    }                                                                   \
+  else                                                                  \
+    {                                                                   \
+      sum = b & 0x01;                                                   \
+      more = 5;                                                         \
+    }
 
 
 /*!
@@ -678,9 +712,8 @@ void gotoNextLine (char** cmd)
  */
 void translateEscapeString (char *str)
 {
-  int i, j;
-  i = 0;
-  j = 0;
+  int i = 0, j = 0;
+  unsigned char b, sum, more = -1;
   while (str[i] != 0)
     {
       TRANSLATE_ESCAPE_STRING_BODY
@@ -693,10 +726,8 @@ void translateEscapeString (char *str)
  */
 void translateEscapeString (string& str)
 {
-  int i, j, len;
-  i = 0;
-  j = 0;
-  len = str.length ();
+  int i = 0, j = 0, len = str.length ();
+  unsigned char b, sum, more = -1;
   while (i < len)
     {
       TRANSLATE_ESCAPE_STRING_BODY
