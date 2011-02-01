@@ -417,8 +417,13 @@ int HttpDir::send (HttpThreadContext* td,
 
       filename = directory;
       td->auxiliaryBuffer->setLength (0);
+
+      size_t lastIndex = filename.rfind ("/");
+      if (lastIndex == string::npos)
+        lastIndex = filename.rfind ("\\");
       *td->auxiliaryBuffer << "<body>\r\n<h1>Contents of directory ";
-      *td->auxiliaryBuffer <<  &td->request.uri[lastSlash] ;
+      *td->auxiliaryBuffer << &filename.c_str ()[lastIndex != string::npos
+                                                 ? lastIndex + 1: 0];
       *td->auxiliaryBuffer << "</h1>\r\n<hr />\r\n";
 
       appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
@@ -649,6 +654,5 @@ void HttpDir::formatHtml (string& in, string& out)
                    0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
           out.append (buf);
         }
-
     }
 }
