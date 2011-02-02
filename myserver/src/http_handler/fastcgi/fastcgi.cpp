@@ -288,8 +288,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       while (! exit);
 
       /* Send the last null chunk if needed.  */
-      if (!responseCompleted && con.useChunks &&
-          (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL))
+      if (!responseCompleted && con.useChunks && !onlyHeader)
         chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
 
       chain.clearAllFilters ();
