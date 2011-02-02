@@ -234,6 +234,7 @@ void HttpDir::generateElement (MemBuf &out,
 
   for (;;)
   {
+    char c;
     while (*cur && ((*cur == '%' ) || (*cur == ' ' )))
       cur++;
 
@@ -246,7 +247,36 @@ void HttpDir::generateElement (MemBuf &out,
       out << "<td><a href=\"";
       out << linkPrefix << name;
       out << "\">" ;
-      out << file.name;
+
+      for (string::iterator i = file.name.begin (); i != file.name.end (); i++)
+        {
+          c = *i;
+          switch (c)
+            {
+            case '<':
+              out << "&lt;";
+              break;
+
+            case '>':
+              out << "&gt;";
+              break;
+
+            case '"':
+              out << "&quot;";
+              break;
+
+            case '\'':
+              out << "&apos;";
+              break;
+
+            case '&':
+              out << "&amp;";
+              break;
+
+            default:
+              out << c;
+            }
+        }
       out << "</a></td>\r\n";
       break;
 
