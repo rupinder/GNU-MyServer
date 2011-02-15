@@ -93,7 +93,7 @@ int HttpProtocol::unLoadProtocol ()
 /*!
   Build a response for an OPTIONS request.
  */
-int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
+int Http::optionsHTTPRESOURCE (string& filename, bool mapped)
 {
   int ret;
   string time;
@@ -113,7 +113,7 @@ int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
           it++;
         }
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &permissions, false);
+      ret = Http::preprocessHttpRequest (filename, mapped, &permissions, false);
       if (ret != 200)
         return raiseHTTPError (ret);
 
@@ -140,7 +140,7 @@ int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
 /*!
   Handle the HTTP TRACE command.
  */
-int Http::traceHTTPRESOURCE (string& filename, bool yetmapped)
+int Http::traceHTTPRESOURCE (string& filename, bool mapped)
 {
   int ret;
   char tmpStr[12];
@@ -152,7 +152,7 @@ int Http::traceHTTPRESOURCE (string& filename, bool yetmapped)
       MemBuf tmp;
       HttpRequestHeader::Entry *connection;
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &permissions, false);
+      ret = Http::preprocessHttpRequest (filename, mapped, &permissions, false);
       if (ret != 200)
         return raiseHTTPError (ret);
 
@@ -219,9 +219,9 @@ u_long Http::getTimeout ()
   Main function to handle the HTTP PUT command.
  */
 int Http::putHTTPRESOURCE (string& filename, bool sysReq, bool onlyHeader,
-                           bool yetmapped)
+                           bool mapped)
 {
-  return sendHTTPResource (filename, sysReq, onlyHeader, yetmapped);
+  return sendHTTPResource (filename, sysReq, onlyHeader, mapped);
 }
 
 /*!
@@ -230,13 +230,13 @@ int Http::putHTTPRESOURCE (string& filename, bool sysReq, bool onlyHeader,
   \param directory Directory where the resource is.
   \param file The file specified by the resource.
   \param filenamePath Complete path to the file.
-  \param yetmapped Is the resource mapped to the localfilesystem?
+  \param mapped Is the resource mapped to the localfilesystem?
   \param permissions Permission mask for this resource.
   \return Return 200 on success.
   \return Any other value is the HTTP error code.
  */
 int Http::getFilePermissions (string& resource, string& directory, string& file,
-                              string &filenamePath, bool yetmapped, int* permissions)
+                              string &filenamePath, bool mapped, int* permissions)
 {
   try
     {
@@ -246,7 +246,7 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
 
       td->securityToken.setVhost (td->connection->host);
 
-      if (!yetmapped)
+      if (!mapped)
         translateEscapeString (resource);
 
       FilesUtility::splitPath (resource, directory, file);
@@ -261,7 +261,7 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
         systemrequest is 1 if the file is in the system directory.
         If filename is already mapped on the file system don't map it again.
        */
-      if (yetmapped)
+      if (mapped)
         filenamePath.assign (resource);
       else
         {
@@ -410,13 +410,13 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
 /*!
   Preprocess a HTTP request.
   \param resource Resource to access.
-  \param yetmapped Is the resource mapped to the localfilesystem?
+  \param mapped Is the resource mapped to the localfilesystem?
   \param permissions Permission mask for this resource.
   \param system Is it a system request?
   \return Return 200 on success.
   \return Any other value is the HTTP error code.
  */
-int Http::preprocessHttpRequest (string &resource, bool yetmapped,
+int Http::preprocessHttpRequest (string &resource, bool mapped,
                                  int* permissions, bool systemrequest)
 {
   string directory;
@@ -432,7 +432,7 @@ int Http::preprocessHttpRequest (string &resource, bool yetmapped,
         td->response.setValue ("connection", "keep-alive");
 
       ret = getFilePermissions (resource, directory, file,
-                                td->filenamePath, yetmapped, permissions);
+                                td->filenamePath, mapped, permissions);
       if (ret != 200)
         return ret;
 
