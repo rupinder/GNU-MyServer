@@ -90,7 +90,6 @@ libmyserver_la_LIBADD =	base/base64/libbase64.la \
 
 myserver_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS) -DHOST_STR=\"$(build)\" -DPREFIX=\"$(prefix)\"
 
-myserver_LDFLAGS = -static -no-install
 myserver_LDADD = libmyserver.la $(PTHREAD_LIB) $(IDN_LIB) \
 	$(XNET_LIB) $(DL_LIB) $(ZLIB_LIB) \
 	$(XML_LIBS) $(INTLLIBS) $(LDFLAGS)
