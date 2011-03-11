@@ -44,7 +44,7 @@ public:
   int addVHost (Vhost *);
 
   /*! Load the virtual hosts list from a xml configuration file.  */
-  virtual int load (const char *);
+  virtual int load (const char *name);
 
   /*! Set the right owner for the log locations.  */
   void changeLocationsOwner ();

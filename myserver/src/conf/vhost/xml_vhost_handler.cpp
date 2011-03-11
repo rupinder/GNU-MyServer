@@ -213,7 +213,7 @@ int XmlVhostHandler::getHostsNumber ()
   Load a log XML node.
  */
 void
-XmlVhostHandler::loadXMLlogData (string name, Vhost* vh, xmlNode* lcur)
+XmlVhostHandler::loadXMLlogData (string name, Vhost *vh, xmlNode *lcur)
 {
   xmlAttr *attr;
   string opt;
@@ -229,61 +229,71 @@ XmlVhostHandler::loadXMLlogData (string name, Vhost* vh, xmlNode* lcur)
         }
       attr = attr->next;
     }
+
   string location;
   list<string> filters;
   u_long cycle;
   xmlNode* stream = lcur->children;
-  for (; stream; stream = stream->next, location.assign (""), cycle = 0, filters.clear ())
+  for (; stream; stream = stream->next)
     {
-      if (stream->type == XML_ELEMENT_NODE &&
-          !xmlStrcmp (stream->name, (xmlChar const*) "STREAM"))
-        {
-          xmlAttr* streamAttr = stream->properties;
-          while (streamAttr)
-            {
-              if (!strcmp ((char *) streamAttr->name, "location"))
-                location.assign ((char *) streamAttr->children->content);
-              else if (!strcmp ((char *) streamAttr->name, "cycle"))
-                cycle = atoi ((char *) streamAttr->children->content);
+      location.assign ("");
+      cycle = 0;
+      filters.clear ();
 
-              streamAttr = streamAttr->next;
-            }
-          xmlNode* filterList = stream->children;
-          for (; filterList; filterList = filterList->next)
+      if (stream->type != XML_ELEMENT_NODE)
+        continue;
+
+      if (xmlStrcmp (stream->name, (xmlChar const *) "STREAM"))
+        Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
+                                     _("Unexpected element in virtual host streams"));
+
+      xmlAttr* streamAttr = stream->properties;
+      while (streamAttr)
+        {
+          if (!strcmp ((char *) streamAttr->name, "location"))
+            location.assign ((char *) streamAttr->children->content);
+          else if (!strcmp ((char *) streamAttr->name, "cycle"))
+            cycle = atoi ((char *) streamAttr->children->content);
+
+          streamAttr = streamAttr->next;
+        }
+
+      xmlNode* filterList = stream->children;
+      for (; filterList; filterList = filterList->next)
+        {
+          if (filterList->type == XML_ELEMENT_NODE &&
+              !xmlStrcmp (filterList->name, (xmlChar const *) "FILTER"))
             {
-              if (filterList->type == XML_ELEMENT_NODE &&
-                  !xmlStrcmp (filterList->name, (xmlChar const*) "FILTER"))
+              if (filterList->children && filterList->children->content)
                 {
-                  if (filterList->children && filterList->children->content)
-                    {
-                      string filter ((char *) filterList->children->content);
-                      filters.push_back (filter);
-                    }
+                  string filter ((char *) filterList->children->content);
+                  filters.push_back (filter);
                 }
             }
-          int err = 1;
-          string str ("XmlVhostHandler::loadXMLlogData : Unrecognized log type");
-
-          if (!name.compare ("ACCESSLOG"))
-            {
-              err = vh->openAccessLog (location, filters, cycle);
-              vh->setAccessLogOpt (opt.c_str ());
-              if (err)
-                Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
-                                                   _("Error opening %s"), location.c_str ());
-            }
-          else if (!name.compare ("WARNINGLOG"))
-            {
-              err = vh->openWarningLog (location, filters, cycle);
-              vh->setWarningLogOpt (opt.c_str ());
-              if (err)
-                Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
-                                                   _("Error opening %s"), location.c_str ());
-            }
-          else
-            Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
-                                               _(" Unrecognized log type"));
         }
+
+      int err = 1;
+      string str ("XmlVhostHandler::loadXMLlogData : Unrecognized log type");
+
+      if (! name.compare ("ACCESSLOG"))
+        {
+          err = vh->openAccessLog (location, filters, cycle);
+          vh->setAccessLogOpt (opt.c_str ());
+          if (err)
+            Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
+                                         _("Error opening %s"), location.c_str ());
+        }
+      else if (! name.compare ("WARNINGLOG"))
+        {
+          err = vh->openWarningLog (location, filters, cycle);
+          vh->setWarningLogOpt (opt.c_str ());
+          if (err)
+            Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
+                                         _("Error opening %s"), location.c_str ());
+        }
+      else
+        Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
+                                     _(" Unrecognized log type"));
     }
 }
 
@@ -410,7 +420,8 @@ int XmlVhostHandler::load (const char *filename)
               int val = atoi ((char *) lcur->children->content);
               if (val > (1 << 16) || val <= 0)
                 Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
-                      _("Specified invalid port %s"), lcur->children->content);
+                      _("An invalid port was specified: %s"),
+                                             lcur->children->content);
               vh->setPort ((u_short)val);
             }
           else if (!xmlStrcmp (lcur->name, (const xmlChar *) "PROTOCOL"))
