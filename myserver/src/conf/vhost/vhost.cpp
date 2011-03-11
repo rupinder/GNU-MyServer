@@ -185,8 +185,8 @@ Vhost::openWarningLog (string location, list<string>& filters, u_long cycle)
 int
 Vhost::openLogFiles ()
 {
-  return logManager->count (this, accessLogType) == 0 ||
-    logManager->count (this, warningLogType) == 0;
+  return logManager->count (this, accessLogType) == 0
+    || logManager->count (this, warningLogType) == 0;
 }
 
 /*!

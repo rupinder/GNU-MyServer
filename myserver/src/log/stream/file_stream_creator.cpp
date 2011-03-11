@@ -25,11 +25,11 @@ FileStreamCreator::create (FiltersFactory* ff, string location,
 {
   File *out = new File ();
   FiltersChain *fc = NULL;
-  char *path = const_cast<char*>(location.c_str ());
   try
     {
       size_t nbw;
-      out->openFile (path, FileStream::defaultFileMask);
+      out->openFile (location.c_str (),
+                     FileStream::defaultFileMask);
       fc = ff->chain (filters, out, &nbw);
       if (fc)
         return new FileStream (ff, cycle, out, fc);
