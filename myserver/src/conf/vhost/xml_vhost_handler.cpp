@@ -170,8 +170,8 @@ vector<Vhost*>* XmlVhostHandler::getVHostList ()
  */
 void XmlVhostHandler::changeLocationsOwner ()
 {
-  if (Server::getInstance ()->getUid () ||
-     Server::getInstance ()->getGid ())
+  if (Server::getInstance ()->getUid ()
+      || Server::getInstance ()->getGid ())
     {
       string uid (Server::getInstance ()->getUid ());
       string gid (Server::getInstance ()->getGid ());
@@ -316,7 +316,7 @@ int XmlVhostHandler::load (const char *filename)
   doc = parser.getDoc ();
   node = doc->children->children;
 
-  for (;node;node = node->next )
+  for (; node; node = node->next )
     {
       xmlNodePtr lcur;
       Vhost *vh;
@@ -324,15 +324,6 @@ int XmlVhostHandler::load (const char *filename)
         continue;
       lcur = node->children;
       vh = new Vhost (logManager);
-      if (vh == 0)
-        {
-          parser.close ();
-          clean ();
-          Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
-                                             _("internal error"), filename);
-          return -1;
-        }
-
       SslContext* sslContext = vh->getVhostSSLContext ();
 
       while (lcur)
