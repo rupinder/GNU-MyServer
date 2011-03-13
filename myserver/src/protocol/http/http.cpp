@@ -1000,12 +1000,13 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
           a->host = newHost;
           if (a->host == NULL)
             {
-              int ret = raiseHTTPError (400);
-              logHTTPaccess ();
-              if (ret == HttpDataHandler::RET_OK && keepalive)
-                return ClientsThread::KEEP_CONNECTION;
-              else
-                return ClientsThread::DELETE_CONNECTION;
+              Server::getInstance ()->log (MYSERVER_LOG_MSG_WARNING,
+                                           _("Cannot find host %s on %s (port %i)"),
+                                           host ? host->value.c_str () : "(NULL)",
+                                           a->getLocalIpAddr (),
+                                           a->getLocalPort ());
+
+              return ClientsThread::DELETE_CONNECTION;
             }
 
           if (td->request.uri.length () > 2 && td->request.uri[1] == '~')
