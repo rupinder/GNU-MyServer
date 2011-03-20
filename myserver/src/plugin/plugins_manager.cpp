@@ -1,6 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation,
+  Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -100,10 +101,10 @@ PluginsManager::loadOptions (Server *server)
         plugin.assign (*node->getAttr (pluginKey));
 
       if (node->getAttr (globalKey))
-        global = stringcmpi (*node->getAttr (globalKey), "YES") == 0;
+        global = strcasecmp (*node->getAttr (globalKey), "YES") == 0;
 
       if (node->getAttr (enabledKey))
-        enabled = stringcmpi (*node->getAttr (enabledKey), "YES") == 0;
+        enabled = strcasecmp (*node->getAttr (enabledKey), "YES") == 0;
 
       if (plugin.length ())
         addPluginInfo (plugin, new PluginInfo (plugin, enabled, global));

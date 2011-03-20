@@ -1,7 +1,8 @@
 @c -*-texinfo-*-
 @c GNU MyServer
 @c
-@c Copyright (C) 2002-2010 Free Software Foundation, Inc.
+@c Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+@c 2011 Free Software Foundation, Inc.
 @c
 @c This program is free software; you can redistribute it and/or modify
 @c it under the terms of the GNU General Public License as published by
@@ -33,8 +34,12 @@ A sample virtual hosts configuration file looks like:
     <DOCROOT>web</DOCROOT>
     <SYSROOT>system</SYSROOT>
     <HOST>foo.bar.com</HOST>
-    <ACCESSLOG>logs/myServer.log</ACCESSLOG>
-    <WARNINGLOG>logs/myServer.err</WARNINGLOG>
+    <ACCESSLOG>
+      <STREAM location="file://logs/myServer.log" cycle="1048576"/>
+	  </ACCESSLOG>
+    <WARNINGLOG>
+      <STREAM location="file://logs/myServer.err" cycle="1048576"/>
+    </WARNINGLOG>
     <ALLOW_CGI>NO</ALLOW_CGI>
   </VHOST>
 </VHOSTS>
@@ -62,9 +67,10 @@ it is your virtual host's name. The optional useRegex="YES"
 means the address would act as a regular expression, not only a fixed
 value.  Multiple host names can be defined for the same virtual host.
 @item <ACCESSLOG>
-it is the access log used by the virtual host
+it is a list of streams where log accesses to the virtual host.
 @item <WARNINGLOG>
-it is the errors log file used by the virtual host.
+it is a list of streams where log warning and error messages for the
+virtual host.
 @end itemize
 
 Log files can have extra options:
@@ -92,8 +98,12 @@ Here is an example of a FTP virtual host:
     <DOCROOT>web</DOCROOT>
     <SYSROOT>system</SYSROOT>
     <HOST>ftp.foo.bar.com</HOST>
-    <ACCESSLOG>logs/myServer.log</ACCESSLOG>
-    <WARNINGLOG>logs/myServer.err</WARNINGLOG>
+    <ACCESSLOG>
+      <STREAM location="file://logs/myServer.log" cycle="1048576"/>
+	  </ACCESSLOG>
+    <WARNINGLOG>
+      <STREAM location="file://logs/myServer.err" cycle="1048576"/>
+    </WARNINGLOG>
   </VHOST>
 </VHOSTS>
 @end example

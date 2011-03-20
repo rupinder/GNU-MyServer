@@ -1,6 +1,6 @@
 /*
   MyServer
-  Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -61,7 +61,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       req.setValue (e->name.c_str (), e->value.c_str ());
     }
 
-  if (stringcmpi (destUrl.getProtocol (), "http"))
+  if (strcasecmp (destUrl.getProtocol (), "http"))
     {
       td->connection->host->warningsLogWrite
         ("Proxy: %s is not a supported protocol",
@@ -216,6 +216,8 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   /* At this point we can modify the response struct before send it to the
      client.  */
   checkDataChunks (td, &keepalive, &useChunks);
+  if (td->response.contentLength.length ())
+    useChunks = false;
 
   td->response.setValue ("Connection", keepalive ? "keep-alive" : "close");
 
@@ -271,7 +273,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                         bool keepalive,
                         string *serverTransferEncoding)
 {
-  u_long contentLength = 0;
+  size_t contentLength = 0;
 
   size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
   u_long bufferDataSize = 0;
@@ -283,7 +285,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
   if (res->contentLength.length ())
     {
-      contentLength = atol (res->contentLength.c_str ());
+      contentLength = atoll (res->contentLength.c_str ());
       if (contentLength < 0)
         return HttpDataHandler::RET_FAILURE;
     }
@@ -313,10 +315,10 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                 break;
 
               HttpDataHandler::appendDataToHTTPChannel (td,
-                                                        td->buffer->getBuffer (),
-                                                        nbr, &(td->outputData),
-                                                        out, td->appendOutputs,
-                                                        useChunks);
+                                                       td->buffer->getBuffer (),
+                                                       nbr, &(td->outputData),
+                                                       out, td->appendOutputs,
+                                                       useChunks);
               written += nbr;
             }
         }

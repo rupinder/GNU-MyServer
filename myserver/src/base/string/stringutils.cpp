@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License,  or
@@ -43,21 +43,21 @@
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822GMTTime (string& out,int len)
+const char *getRFC822GMTTime (string& out)
 {
   time_t ltime;
   time ( &ltime );
-  return getRFC822GMTTime (ltime, out, len);
+  return getRFC822GMTTime (ltime, out);
 }
 
 /*!
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822GMTTime (const time_t t, string& out, int len)
+const char *getRFC822GMTTime (const time_t t, string& out)
 {
   char buff[32];
-  getRFC822GMTTime (t, buff, 32);
+  getRFC822GMTTime (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -66,21 +66,21 @@ const char *getRFC822GMTTime (const time_t t, string& out, int len)
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822LocalTime (string& out,int len)
+const char *getRFC822LocalTime (string& out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822LocalTime (ltime, out, len);
+  return getRFC822LocalTime (ltime, out);
 }
 
 /*!
   This function format current time to the RFC 822 format and output
   it to a string.
  */
-const char *getRFC822LocalTime (const time_t t, string &out,int len)
+const char *getRFC822LocalTime (const time_t t, string &out)
 {
   char buff[32];
-  getRFC822LocalTime (t, buff, 32);
+  getRFC822LocalTime (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -88,23 +88,24 @@ const char *getRFC822LocalTime (const time_t t, string &out,int len)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (char* out, int len)
+const char *getRFC822GMTTime (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822GMTTime (ltime, out, len);
+  return getRFC822GMTTime (ltime, out);
 }
 
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (const time_t ltime, char* out, int /*!len*/)
+const char *getRFC822GMTTime (const time_t ltime, char* out)
 {
   char *asct;
+  char buffer[32];
   u_long ind = 0;
   tm* gmTime = gmtime (&ltime);
   gmTime->tm_year += 1900;
-  asct= asctime (gmTime);
+  asct = asctime_r (gmTime, buffer);
   out[ind++]= asct[0];
   out[ind++]= asct[1];
   out[ind++]= asct[2];
@@ -152,6 +153,7 @@ time_t getTime (const char* str)
   int c = 0;
   int i;
   tm t;
+  memset (&t, 0, sizeof (t));
   for (i = 0; i < 30; i++)
     {
       if (str[c] == ',')
@@ -317,25 +319,26 @@ time_t getTime (const char* str)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (char* out, int len)
+const char *getRFC822LocalTime (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getRFC822LocalTime (ltime, out, len);
+  return getRFC822LocalTime (ltime, out);
 }
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (const time_t ltime, char* out, int /*!len*/)
+const char *getRFC822LocalTime (const time_t ltime, char* out)
 {
   char *asct;
   tm result;
   u_long ind = 0;
+  char buffer[32];
 
   myserver_localtime (&ltime, &result);
 
   result.tm_year += 1900;
-  asct = asctime (&result);
+  asct = asctime_r (&result, buffer);
   out[ind++] = asct[0];
   out[ind++] = asct[1];
   out[ind++] = asct[2];
@@ -377,31 +380,31 @@ const char *getRFC822LocalTime (const time_t ltime, char* out, int /*!len*/)
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (char* out, int len)
+const char* getLocalLogFormatDate (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getLocalLogFormatDate (ltime, out, len);
+  return getLocalLogFormatDate (ltime, out);
 }
 
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (char* out, int len)
+const char* getGMTLogFormatDate (char* out)
 {
   time_t ltime;
   time (&ltime);
-  return getGMTLogFormatDate (ltime, out, len);
+  return getGMTLogFormatDate (ltime, out);
 }
 
 
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (const time_t t, string& out, int len)
+const char* getLocalLogFormatDate (const time_t t, string& out)
 {
   char buff[32];
-  getLocalLogFormatDate (t, buff, len);
+  getLocalLogFormatDate (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -409,20 +412,20 @@ const char* getLocalLogFormatDate (const time_t t, string& out, int len)
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (const time_t t, string& out, int len)
+const char* getGMTLogFormatDate (const time_t t, string& out)
 {
   char buff[32];
-  getGMTLogFormatDate (t, buff, len);
+  getGMTLogFormatDate (t, buff);
   out.assign (buff);
   return out.c_str ();
 }
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (string& out, int len)
+const char* getLocalLogFormatDate (string& out)
 {
   char buff[32];
-  getLocalLogFormatDate (buff, len);
+  getLocalLogFormatDate (buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -430,10 +433,10 @@ const char* getLocalLogFormatDate (string& out, int len)
 /*!
   Get the GMT time string.
  */
-const char* getGMTLogFormatDate (string& out, int len)
+const char* getGMTLogFormatDate (string& out)
 {
   char buff[32];
-  getGMTLogFormatDate (buff, len);
+  getGMTLogFormatDate (buff);
   out.assign (buff);
   return out.c_str ();
 }
@@ -442,19 +445,19 @@ const char* getGMTLogFormatDate (string& out, int len)
   Get a string in the format "day/month/year:hour:minute:second offset"
   for the local zone.
  */
-const char* getLocalLogFormatDate (const time_t t, char* out, int len)
+const char* getLocalLogFormatDate (const time_t t, char* out)
 {
   int offset = 0;
   time_t ltime;
   time (&ltime);
   char *asct;
   tm gmTime;
-  myserver_localtime (&ltime, &gmTime );
-  if (len < 25)
-    return 0;
+  char buffer[32];
+
+  myserver_localtime (&ltime, &gmTime);
 
   gmTime.tm_year += 1900;
-  asct = asctime (&gmTime);
+  asct = asctime_r (&gmTime, buffer);
   out[0] = asct[8] != ' ' ? asct[8] : '0';
   out[1] = asct[9];
   out[2] = '/';
@@ -511,20 +514,18 @@ const char* getLocalLogFormatDate (const time_t t, char* out, int len)
   Get a string in the format "day/month/year:hour:minute:second offset"
   for the GMT zone.
  */
-const char* getGMTLogFormatDate (const time_t t, char* out, int len)
+const char* getGMTLogFormatDate (const time_t t, char* out)
 {
   time_t ltime;
   time (&ltime);
   char *asct;
   tm result;
+  char buffer[32];
 
   myserver_localtime ( &ltime, &result );
 
-  if (len < 25)
-    return 0;
-
   result.tm_year += 1900;
-  asct = asctime (&result);
+  asct = asctime_r (&result, buffer);
   out[0] = asct[8] != ' ' ? asct[8] : '0';
   out[1] = asct[9];
   out[2] = '/';
@@ -655,29 +656,69 @@ void gotoNextLine (char** cmd)
 
 }
 
+#define TRANSLATE_ESCAPE_STRING_BODY                                    \
+  if ((str[i] == '%') && str[i + 1] && str[i + 2])                      \
+    {                                                                   \
+      b = (char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));      \
+      i = i + 3;                                                        \
+    }                                                                   \
+  else if (str[i] == '+')                                               \
+    {                                                                   \
+      b = ' ';                                                          \
+      i++;                                                              \
+    }                                                                   \
+  else                                                                  \
+    b = str[i++];                                                       \
+                                                                        \
+  if ((b & 0xc0) == 0x80)                                               \
+    {                                                                   \
+      sum = (sum << 6) | (b & 0x3f);                                    \
+      if (--more == 0)                                                  \
+        str[j++] = sum;                                                 \
+    }                                                                   \
+  else if ((b & 0x80) == 0x00)                                          \
+    {                                                                   \
+      str[j++] = b;                                                     \
+    }                                                                   \
+  else if ((b & 0xe0) == 0xc0)                                          \
+    {                                                                   \
+      sum = b & 0x1f;                                                   \
+      more = 1;                                                         \
+    }                                                                   \
+  else if ((b & 0xf0) == 0xe0)                                          \
+    {                                                                   \
+      sum = b & 0x0f;                                                   \
+      more = 2;                                                         \
+    }                                                                   \
+  else if ((b & 0xf8) == 0xf0)                                          \
+    {                                                                   \
+      sum = b & 0x07;                                                   \
+      more = 3;                                                         \
+    }                                                                   \
+  else if ((b & 0xfc) == 0xf8)                                          \
+    {                                                                   \
+      sum = b & 0x03;                                                   \
+      more = 4;                                                         \
+    }                                                                   \
+  else                                                                  \
+    {                                                                   \
+      sum = b & 0x01;                                                   \
+      more = 5;                                                         \
+    }
+
+
 /*!
   Translates HTTP escape sequences.
  */
 void translateEscapeString (char *str)
 {
-  int i, j;
-  i = 0;
-  j = 0;
+  int i = 0, j = 0;
+  unsigned char b, sum, more = -1;
   while (str[i] != 0)
     {
-      if ((str[i] == '%') && (str[i + 1] != 0) && (str[i + 2] != 0))
-        {
-          str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));
-          i = i + 3;
-        }
-      else
-        {
-          str[j] = str[i];
-          i++;
-        }
-      j++;
+      TRANSLATE_ESCAPE_STRING_BODY
     }
-  str[j] = 0;
+  str[j] = '\0';
 }
 
 /*!
@@ -685,25 +726,14 @@ void translateEscapeString (char *str)
  */
 void translateEscapeString (string& str)
 {
-  int i, j, len;
-  i = 0;
-  j = 0;
-  len = str.length ();
-  while (len--)
+  int i = 0, j = 0, len = str.length ();
+  unsigned char b, sum, more = -1;
+  while (i < len)
     {
-      if ((str[i] == '%') && (str[i + 1] != 0) && (str[i + 2] != 0))
-        {
-          str[j] =(char) (16 * hexVal (str[i + 1]) + hexVal (str[i + 2]));
-          i = i + 3;
-        }
-      else
-        {
-          str[j] = str[i];
-          i++;
-        }
-      j++;
+      TRANSLATE_ESCAPE_STRING_BODY
     }
-  str[j] = 0;
+
+  str.erase (j);
 }
 
 /*!
@@ -824,7 +854,7 @@ int getEndLine (const char* str, int max)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmpi (string const &a, string const &b)
+int strcasecmp (string const &a, string const &b)
 {
   return strcasecmp (a.c_str (), b.c_str ());
 }
@@ -836,7 +866,7 @@ int stringcmpi (string const &a, string const &b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmpi (string const &a, const char* b)
+int strcasecmp (string const &a, const char* b)
 {
   return strcasecmp (a.c_str (), b);
 }
@@ -848,7 +878,7 @@ int stringcmpi (string const &a, const char* b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmp (const string& a, const string& b)
+int strcmp (const string& a, const string& b)
 {
   return strcmp (a.c_str (), b.c_str ());
 }
@@ -860,7 +890,7 @@ int stringcmp (const string& a, const string& b)
   Returns < 0 if [A] is less than [B].
   Returns > 0 if [A] is greater than [B].
  */
-int stringcmp (string const &a, const char* b)
+int strcmp (string const &a, const char* b)
 {
   return strcmp (a.c_str (), b);
 }

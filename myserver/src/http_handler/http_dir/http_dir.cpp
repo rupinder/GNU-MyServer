@@ -1,6 +1,6 @@
 /*
   MyServer
-  Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010 Free Software
+  Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free Software
   Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ using namespace std;
 bool HttpDir::compareFileStructByName (HttpDir::FileStruct i,
                                        HttpDir::FileStruct j)
 {
-  return stringcmpi (i.name, j.name) < 0 ? true : false;
+  return strcasecmp (i.name, j.name) < 0 ? true : false;
 }
 
 /*!
@@ -234,6 +234,7 @@ void HttpDir::generateElement (MemBuf &out,
 
   for (;;)
   {
+    char c;
     while (*cur && ((*cur == '%' ) || (*cur == ' ' )))
       cur++;
 
@@ -246,12 +247,41 @@ void HttpDir::generateElement (MemBuf &out,
       out << "<td><a href=\"";
       out << linkPrefix << name;
       out << "\">" ;
-      out << name;
+
+      for (string::iterator i = file.name.begin (); i != file.name.end (); i++)
+        {
+          c = *i;
+          switch (c)
+            {
+            case '<':
+              out << "&lt;";
+              break;
+
+            case '>':
+              out << "&gt;";
+              break;
+
+            case '"':
+              out << "&quot;";
+              break;
+
+            case '\'':
+              out << "&apos;";
+              break;
+
+            case '&':
+              out << "&amp;";
+              break;
+
+            default:
+              out << c;
+            }
+        }
       out << "</a></td>\r\n";
       break;
 
     case 't':
-      getRFC822GMTTime (file.time_write, fileTime, 32);
+      getRFC822GMTTime (file.time_write, fileTime);
       out << "<td>";
       out << fileTime ;
       out << "</td>\r\n";
@@ -402,11 +432,9 @@ int HttpDir::send (HttpThreadContext* td,
         the browse directory insert it in the page.
        */
       if (cssFile)
-        {
-          *td->auxiliaryBuffer << "<link rel=\"stylesheet\" href=\""
-                               << cssFile
-                               << "\" type=\"text/css\" media=\"all\"/>\r\n";
-        }
+        *td->auxiliaryBuffer << "<link rel=\"stylesheet\" href=\""
+                             << cssFile
+                             << "\" type=\"text/css\" media=\"all\"/>\r\n";
 
       *td->auxiliaryBuffer << "</head>\r\n";
 
@@ -419,8 +447,13 @@ int HttpDir::send (HttpThreadContext* td,
 
       filename = directory;
       td->auxiliaryBuffer->setLength (0);
+
+      size_t lastIndex = filename.rfind ("/");
+      if (lastIndex == string::npos)
+        lastIndex = filename.rfind ("\\");
       *td->auxiliaryBuffer << "<body>\r\n<h1>Contents of directory ";
-      *td->auxiliaryBuffer <<  &td->request.uri[lastSlash] ;
+      *td->auxiliaryBuffer << &filename.c_str ()[lastIndex != string::npos
+                                                 ? lastIndex + 1: 0];
       *td->auxiliaryBuffer << "</h1>\r\n<hr />\r\n";
 
       appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
@@ -613,27 +646,43 @@ int HttpDir::send (HttpThreadContext* td,
  */
 void HttpDir::formatHtml (string& in, string& out)
 {
-  string::size_type pos = 0;
-  out.assign (in);
-  /*
-    Replace characters in the ranges 32-47 58-64 123-126 160-255
-    with "&#CODE;".
-   */
-  for (pos = 0; out[pos] != '\0'; pos++)
+  char tmp[2] = {'\0', '\0'};
+
+  for (int i = 0; i < in.size (); i++)
     {
-      if (((u_char) out[pos] >= 32
-           && (u_char) out[pos] <= 47)
-          || ((u_char) out[pos] >= 58
-              && (u_char) out[pos] <= 64)
-          || ((u_char) out[pos] >= 123
-              && (u_char) out[pos] <= 126)
-          || ((u_char) out[pos] >= 160
-              && (u_char) out[pos] < 255))
+      unsigned char c = (unsigned char) in[i];
+      if ((c >= 'a' && c <= 'z')
+          || (c >= 'A' && c <= 'Z')
+          || (c >= '0' && c <= '9')
+          || c == '-' || c == '_'
+          || c == '.' || c == '!'
+          || c == '~' || c == '*'
+          || c == '\'' || c == '('
+          || c == ')')
         {
-          ostringstream os;
-          os << "&#" << (int)((unsigned char) out[pos]) << ";";
-          out.replace (pos, 1, os.str ());
-          pos += os.str ().length () - 1;
+          tmp[0] = c;
+          out.append (tmp);
+        }
+      else if (c == ' ')
+        out.append ("+");
+      else if (c <= 0x007f)
+        {
+          char buf[3];
+          sprintf (buf, "%%%x", c);
+          out.append (buf);
+        }
+      else if (c <= 0x07FF)
+        {
+          char buf[5];
+          sprintf (buf, "%%%x%%%x", 0xc0 | c >> 6, 0x80 | (c & 0x3F));
+          out.append (buf);
+        }
+      else
+        {
+          char buf[7];
+          sprintf (buf, "%%%x%%%x%%%x", 0xe0 | (c >> 12),
+                   0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+          out.append (buf);
         }
     }
 }

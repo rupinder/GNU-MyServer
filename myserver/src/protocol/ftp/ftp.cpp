@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-  Free Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+  2011 Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
@@ -434,7 +434,7 @@ void Ftp::logAccess (int nReplyCode, const std::string & sCustomText)
   string time;
   char msgCode[12];
   sprintf (msgCode, "%i", nReplyCode);
-  getLocalLogFormatDate (time, 32);
+  getLocalLogFormatDate (time);
 
   td.auxiliaryBuffer->setLength (0);
   *td.auxiliaryBuffer << time
@@ -1519,7 +1519,7 @@ void
 Ftp::help (const std::string & sCmd /* = "" */ )
 {
   waitDataConnection ();
-  if (sCmd.empty () || stringcmpi (sCmd, "SITE") == 0)
+  if (sCmd.empty () || strcasecmp (sCmd, "SITE") == 0)
     ftpReply (214);
   else
     ftpReply (502);
@@ -1769,7 +1769,7 @@ Ftp::list (const std::string & sParam /*= ""*/ )
           perm[9] = guestMask & MYSERVER_PERMISSION_EXECUTE ? 'x' : '-';
 
           string date;
-          const char *datePtr = getRFC822LocalTime (fd.time_write, date, 32);
+          const char *datePtr = getRFC822LocalTime (fd.time_write, date);
 
           char dateFtpFormat[13];
 
@@ -1855,7 +1855,7 @@ Ftp::list (const std::string & sParam /*= ""*/ )
           perm[9] = guestMask & MYSERVER_PERMISSION_EXECUTE ? 'x' : '-';
 
           string date;
-          const char *datePtr = getRFC822LocalTime (fd.time_write, date, 32);
+          const char *datePtr = getRFC822LocalTime (fd.time_write, date);
 
           char dateFtpFormat[13];
 

@@ -1,6 +1,7 @@
 # GNU MyServer
 #
-# Copyright (C) 2002-2010 Free Software Foundation, Inc.
+# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+# 2011 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -74,6 +75,7 @@ test_suite_SOURCES =  	main.cpp				\
 			test_socket_pair.cpp			\
 			test_socket_stream_creator.cpp		\
 			test_ssl_socket.cpp			\
+			test_stringutils.cpp \
 			test_thread.cpp				\
 			test_unix_socket.cpp			\
 			test_url.cpp				\

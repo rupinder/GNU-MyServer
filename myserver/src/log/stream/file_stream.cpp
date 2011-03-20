@@ -1,6 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2006, 2008, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2006, 2008, 2009, 2010, 2011 Free Software Foundation,
+  Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -78,7 +79,7 @@ FileStream::makeNewFileName (string oldFileName)
   FilesUtility::splitPath (oldFileName, filedir, filename);
   FilesUtility::getFileExt (ext, filename);
 
-  getRFC822LocalTime (time, 32);
+  getRFC822LocalTime (time);
   time = trim (time.substr (5, 32));
 
   for (int i = 0; i < static_cast<int>(time.length ()); i++)

@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -61,7 +61,7 @@ int MimeRecord::addFilter (const char* n, bool acceptDuplicate)
       list<string>::iterator i = filters.begin ();
       for (; i != filters.end (); i++)
         {
-          if (!stringcmpi (*i, n))
+          if (!strcasecmp (*i, n))
             return 0;
         }
     }

@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-  Free Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+  2011 Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -72,13 +72,7 @@ int HttpProtocol::loadProtocol ()
 
   data = Server::getInstance ()->getData ("vhost.allow_mime");
   if (data)
-    {
-
-      if (! strcasecmp (data, "YES"))
-        allowVhostMime = 1;
-      else
-        allowVhostMime = 0;
-    }
+    allowVhostMime = !strcasecmp (data, "YES");
 
   data = Server::getInstance ()->getData ("cgi.timeout");
   if (data)
@@ -99,7 +93,7 @@ int HttpProtocol::unLoadProtocol ()
 /*!
   Build a response for an OPTIONS request.
  */
-int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
+int Http::optionsHTTPRESOURCE (string& filename, bool mapped)
 {
   int ret;
   string time;
@@ -119,11 +113,11 @@ int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
           it++;
         }
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &permissions, false);
+      ret = Http::preprocessHttpRequest (filename, mapped, &permissions, false);
       if (ret != 200)
         return raiseHTTPError (ret);
 
-      getRFC822GMTTime (time, 32);
+      getRFC822GMTTime (time);
       td->auxiliaryBuffer->setLength (0);
       *td->auxiliaryBuffer << "HTTP/1.1 200 OK\r\n";
       *td->auxiliaryBuffer << "Date: " << time;
@@ -146,7 +140,7 @@ int Http::optionsHTTPRESOURCE (string& filename, bool yetmapped)
 /*!
   Handle the HTTP TRACE command.
  */
-int Http::traceHTTPRESOURCE (string& filename, bool yetmapped)
+int Http::traceHTTPRESOURCE (string& filename, bool mapped)
 {
   int ret;
   char tmpStr[12];
@@ -158,12 +152,12 @@ int Http::traceHTTPRESOURCE (string& filename, bool yetmapped)
       MemBuf tmp;
       HttpRequestHeader::Entry *connection;
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &permissions, false);
+      ret = Http::preprocessHttpRequest (filename, mapped, &permissions, false);
       if (ret != 200)
         return raiseHTTPError (ret);
 
       tmp.intToStr (contentLength, tmpStr, 12);
-      getRFC822GMTTime (time, 32);
+      getRFC822GMTTime (time);
 
       td->auxiliaryBuffer->setLength (0);
       *td->auxiliaryBuffer << "HTTP/1.1 200 OK\r\n";
@@ -225,9 +219,9 @@ u_long Http::getTimeout ()
   Main function to handle the HTTP PUT command.
  */
 int Http::putHTTPRESOURCE (string& filename, bool sysReq, bool onlyHeader,
-                           bool yetmapped)
+                           bool mapped)
 {
-  return sendHTTPResource (filename, sysReq, onlyHeader, yetmapped);
+  return sendHTTPResource (filename, sysReq, onlyHeader, mapped);
 }
 
 /*!
@@ -236,13 +230,13 @@ int Http::putHTTPRESOURCE (string& filename, bool sysReq, bool onlyHeader,
   \param directory Directory where the resource is.
   \param file The file specified by the resource.
   \param filenamePath Complete path to the file.
-  \param yetmapped Is the resource mapped to the localfilesystem?
+  \param mapped Is the resource mapped to the localfilesystem?
   \param permissions Permission mask for this resource.
   \return Return 200 on success.
   \return Any other value is the HTTP error code.
  */
 int Http::getFilePermissions (string& resource, string& directory, string& file,
-                              string &filenamePath, bool yetmapped, int* permissions)
+                              string &filenamePath, bool mapped, int* permissions)
 {
   try
     {
@@ -251,6 +245,9 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
       td->securityToken.setSysDirectory (sysdir);
 
       td->securityToken.setVhost (td->connection->host);
+
+      if (!mapped)
+        translateEscapeString (resource);
 
       FilesUtility::splitPath (resource, directory, file);
       FilesUtility::completePath (directory);
@@ -264,7 +261,7 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
         systemrequest is 1 if the file is in the system directory.
         If filename is already mapped on the file system don't map it again.
        */
-      if (yetmapped)
+      if (mapped)
         filenamePath.assign (resource);
       else
         {
@@ -273,7 +270,6 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
             If the client tries to access files that aren't in the web directory
             send a HTTP 401 error page.
            */
-          translateEscapeString (resource);
           if ((resource[0] != '\0')
               && (FilesUtility::getPathRecursionLevel (resource) < 1))
             return 401;
@@ -289,6 +285,8 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
           isDirectory = FilesUtility::isDirectory (filenamePath.c_str ());
         }
       catch (FileNotFoundException & e)
+        {}
+      catch (DirectoryException & e)
         {}
 
       if (isDirectory)
@@ -347,13 +345,18 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
            MYSERVER_SECURITY_CONF | MYSERVER_VHOST_CONF | MYSERVER_SERVER_CONF);
       *permissions = td->securityToken.getMask ();
 
+      /* By default use the Basic authentication scheme.  */
+      td->authScheme = HTTP_AUTH_SCHEME_BASIC;
+
       /* Check if we have to use digest for the current directory.  */
       if (authType && ! strcasecmp (authType, "Digest"))
         {
           HttpUserData* hud = static_cast<HttpUserData*>
                                                (td->connection->protocolBuffer);
 
-          if (!td->request.auth.compare ("Digest"))
+          if (td->request.auth.compare ("Digest"))
+            *permissions = 0;
+          else
             {
               if (!hud->digestChecked)
                 {
@@ -376,14 +379,9 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
                   *permissions = td->securityToken.getProvidedMask ();
                 }
             }
-          else
-            *permissions = 0;
 
           td->authScheme = HTTP_AUTH_SCHEME_DIGEST;
         }
-      /* By default use the Basic authentication scheme. */
-      else
-        td->authScheme = HTTP_AUTH_SCHEME_BASIC;
     }
   catch (FileNotFoundException & e)
     {
@@ -412,13 +410,13 @@ int Http::getFilePermissions (string& resource, string& directory, string& file,
 /*!
   Preprocess a HTTP request.
   \param resource Resource to access.
-  \param yetmapped Is the resource mapped to the localfilesystem?
+  \param mapped Is the resource mapped to the localfilesystem?
   \param permissions Permission mask for this resource.
   \param system Is it a system request?
   \return Return 200 on success.
   \return Any other value is the HTTP error code.
  */
-int Http::preprocessHttpRequest (string &resource, bool yetmapped,
+int Http::preprocessHttpRequest (string &resource, bool mapped,
                                  int* permissions, bool systemrequest)
 {
   string directory;
@@ -434,7 +432,7 @@ int Http::preprocessHttpRequest (string &resource, bool yetmapped,
         td->response.setValue ("connection", "keep-alive");
 
       ret = getFilePermissions (resource, directory, file,
-                                td->filenamePath, yetmapped, permissions);
+                                td->filenamePath, mapped, permissions);
       if (ret != 200)
         return ret;
 
@@ -487,7 +485,9 @@ int Http::preprocessHttpRequest (string &resource, bool yetmapped,
 
           /* Don't exit immediately if we find a non directory element, a
              location handler can be registered after it.  */
-          if (splitPoint && FilesUtility::notDirectory (curr.c_str ()))
+          /* FIXME: do only a stat.  */
+          if (splitPoint && FilesUtility::nodeExists (curr.c_str ())
+              && FilesUtility::notDirectory (curr.c_str ()))
             splitPoint = next;
 
           i = next;
@@ -659,7 +659,7 @@ HttpUserData::reset ()
  */
 int
 Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
-                        bool yetmapped)
+                        bool mapped)
 {
   /*
     With this code we manage a request of a file or a directory or anything
@@ -678,7 +678,7 @@ Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
       filename.assign (uri);
       td->buffer->setLength (0);
 
-      ret = Http::preprocessHttpRequest (filename, yetmapped, &td->permissions,
+      ret = Http::preprocessHttpRequest (filename, mapped, &td->permissions,
                                          systemrequest);
       if (ret != 200)
         return raiseHTTPError (ret);
@@ -692,6 +692,8 @@ Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
         {
           isDirectory = FilesUtility::isDirectory (td->filenamePath.c_str ());
         }
+      catch (DirectoryException & e)
+        {}
       catch (FileNotFoundException & e)
         {}
 
@@ -765,7 +767,7 @@ int Http::logHTTPaccess ()
 
       *td->auxiliaryBuffer << " [";
 
-      getLocalLogFormatDate (time, 32);
+      getLocalLogFormatDate (time);
       *td->auxiliaryBuffer << time << "] \"";
 
       if (td->request.cmd.length ())
@@ -927,11 +929,11 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
         staticData->getDynCmdManager ()->getHttpCommand (td->request.cmd);
 
       /* If the used method supports POST data, read it.  */
-      if ((!td->request.cmd.compare ("POST")) ||
-          (!td->request.cmd.compare ("PUT")) ||
-          (!td->request.cmd.compare ("LOCK")) ||
-          (!td->request.cmd.compare ("PROPFIND")) ||
-          (dynamicCommand && dynamicCommand->acceptData ()))
+      if ((!td->request.cmd.compare ("POST"))
+          || (!td->request.cmd.compare ("PUT"))
+          || (!td->request.cmd.compare ("LOCK"))
+          || (!td->request.cmd.compare ("PROPFIND"))
+          || (dynamicCommand && dynamicCommand->acceptData ()))
         {
           int httpErrorCode;
           int readPostRet;
@@ -974,7 +976,7 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
           HttpRequestHeader::Entry *connection
             = td->request.other.get ("connection");
           if (connection)
-            keepalive = !stringcmpi (connection->value.c_str (), "keep-alive")
+            keepalive = !strcasecmp (connection->value.c_str (), "keep-alive")
               && !td->request.ver.compare ("HTTP/1.1");
 
           if (! td->request.ver.compare ("HTTP/1.1")
@@ -998,12 +1000,13 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
           a->host = newHost;
           if (a->host == NULL)
             {
-              int ret = raiseHTTPError (400);
-              logHTTPaccess ();
-              if (ret == HttpDataHandler::RET_OK && keepalive)
-                return ClientsThread::KEEP_CONNECTION;
-              else
-                return ClientsThread::DELETE_CONNECTION;
+              Server::getInstance ()->log (MYSERVER_LOG_MSG_WARNING,
+                                           _("Cannot find host %s on %s (port %i)"),
+                                           host ? host->value.c_str () : "(NULL)",
+                                           a->getLocalIpAddr (),
+                                           a->getLocalPort ());
+
+              return ClientsThread::DELETE_CONNECTION;
             }
 
           if (td->request.uri.length () > 2 && td->request.uri[1] == '~')
@@ -1283,7 +1286,7 @@ int Http::requestAuthorization ()
     }
 
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time << "\r\n\r\n";
 
   if (td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
@@ -1333,7 +1336,7 @@ int Http::raiseHTTPError (int ID)
 
       td->lastError = ID;
 
-      if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+      if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
         td->response.setValue ("connection", "keep-alive");
 
       td->response.httpStatus = ID;
@@ -1471,7 +1474,7 @@ Internal Server Error\n\
   *td->auxiliaryBuffer << tmp;
   *td->auxiliaryBuffer << "\r\n";
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time;
   *td->auxiliaryBuffer << "\r\n\r\n";
 
@@ -1639,19 +1642,19 @@ int Http::sendHTTPRedirect (const char *newURL)
 
   td->response.httpStatus = 302;
   td->auxiliaryBuffer->setLength (0);
-  *td->auxiliaryBuffer << "HTTP/1.1 302 Moved\r\nAccept-Ranges: bytes\r\n"
-          << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n"
-          << "Content-type: text/html\r\n"
-          << "Location: " << newURL << "\r\n"
-          << "Content-length: 0\r\n";
+  *td->auxiliaryBuffer << "HTTP/1.1 302 Moved\r\n"
+                       << "Accept-Ranges: bytes\r\n"
+                       << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n"
+                       << "Location: " << newURL << "\r\n"
+                       << "Content-length: 0\r\n";
 
-  if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+  if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
     *td->auxiliaryBuffer << "Connection: keep-alive\r\n";
   else
     *td->auxiliaryBuffer << "Connection: close\r\n";
 
   *td->auxiliaryBuffer << "Date: ";
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   *td->auxiliaryBuffer << time
           << "\r\n\r\n";
   td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
@@ -1672,12 +1675,12 @@ int Http::sendHTTPNonModified ()
   *td->auxiliaryBuffer << "HTTP/1.1 304 Not Modified\r\nAccept-Ranges: bytes\r\n"
           << "Server: GNU MyServer " << MYSERVER_VERSION << "\r\n";
 
-  if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+  if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
     *td->auxiliaryBuffer << "Connection: keep-alive\r\n";
   else
     *td->auxiliaryBuffer << "Connection: close\r\n";
 
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
 
   *td->auxiliaryBuffer << "Date: " << time << "\r\n\r\n";
 

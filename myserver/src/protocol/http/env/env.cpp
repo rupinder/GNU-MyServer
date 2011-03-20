@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -177,11 +177,11 @@ void Env::buildEnvironmentString (HttpThreadContext* td, char *cgiEnv,
   memCgi << td->request.uri.c_str ();
 
   memCgi << end_str << "DATE_GMT=";
-  getRFC822GMTTime (strTmp, 32);
+  getRFC822GMTTime (strTmp);
   memCgi << strTmp;
 
   memCgi << end_str << "DATE_LOCAL=";
-  getRFC822LocalTime (strTmp, 32);
+  getRFC822LocalTime (strTmp);
   memCgi << strTmp;
 
   memCgi << end_str << "DOCUMENT_ROOT=";

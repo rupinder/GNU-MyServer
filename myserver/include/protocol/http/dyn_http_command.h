@@ -1,7 +1,8 @@
 /* -*- mode: c++ -*- */
 /*
   MyServer
-  Copyright (C) 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2005, 2007, 2009, 2010, 2011 Free Software Foundation,
+  Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -38,7 +39,7 @@ public:
   virtual int acceptData () = 0;
   virtual int send (HttpThreadContext* context, ConnectionPtr connection,
                     string& Uri, bool systemrequest = false,
-                    bool onlyHeader = false, bool yetmapped = false) = 0;
+                    bool onlyHeader = false, bool mapped = false) = 0;
 private:
   string name;
 };

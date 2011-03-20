@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software
-  Foundation, Inc.
+  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free
+  Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -452,7 +452,7 @@ int ControlProtocol::addToLog (int retCode, ConnectionPtr con, char *buffer,
                                int bufferSize, ControlHeader &header)
 {
   string time;
-  getRFC822GMTTime (time, 32);
+  getRFC822GMTTime (time);
   gnulib::snprintf (buffer, bufferSize, "%s [%s] %s:%s:%s - %s - %i",
                     con->getIpAddr (), time.c_str (), header.getCommand (),
                     header.getVersion (), header.getOptions (),

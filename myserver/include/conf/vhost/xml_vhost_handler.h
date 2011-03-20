@@ -1,7 +1,7 @@
 /* -*- mode: c++ -*- */
 /*
   MyServer
-  Copyright (C) 2007, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2007, 2009, 2010, 2011 Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -44,7 +44,7 @@ public:
   int addVHost (Vhost *);
 
   /*! Load the virtual hosts list from a xml configuration file.  */
-  virtual int load (const char *);
+  virtual int load (const char *name);
 
   /*! Set the right owner for the log locations.  */
   void changeLocationsOwner ();

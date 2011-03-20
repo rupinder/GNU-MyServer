@@ -1,6 +1,6 @@
 /*
   MyServer
-  Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010 Free Software
+  Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free Software
   Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -235,7 +235,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       if (lastMT == -1)
         return td->http->raiseHTTPError (500);
 
-      getRFC822GMTTime (lastMT, tmpTime, 32);
+      getRFC822GMTTime (lastMT, tmpTime);
       td->response.setValue ("last-modified", tmpTime.c_str ());
 
       HttpRequestHeader::Entry *ifModifiedSince =

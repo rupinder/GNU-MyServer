@@ -1,6 +1,6 @@
 dnl GNU MyServer
 dnl
-dnl Copyright (C) 2009 Free Software Foundation, Inc.
+dnl Copyright (C) 2009, 2011 Free Software Foundation, Inc.
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
 dnl the Free Software Foundation; either version 3 of the License, or

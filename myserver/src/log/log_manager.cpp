@@ -1,6 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2006, 2008, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2006, 2008, 2009, 2010, 2011 Free Software Foundation,
+  Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -652,7 +653,7 @@ LogManager::log (const void* owner, const string & type, LoggingLevel level,
           char time[38];
           int len;
           time[0] = '[';
-          getRFC822GMTTime (&time[1], 32);
+          getRFC822GMTTime (&time[1]);
           len = strlen (time);
           time[len + 0] = ']';
           time[len + 1] = ' ';

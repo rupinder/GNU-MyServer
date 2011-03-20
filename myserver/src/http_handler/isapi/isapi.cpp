@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2007, 2008, 2009, 2010 Free Software
-  Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2007, 2008, 2009, 2010, 2011 Free
+  Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -228,7 +228,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
     ((Vhost*)(ConnInfo->td->connection->host))->warningsLogWrite (_("ISAPI: internal error"));
     return HttpDataHandler::RET_FAILURE;
   }
-  keepalive = connection && (!stringcmpi (connection->value.c_str (), "keep-alive")) ;
+  keepalive = connection && (!strcasecmp (connection->value.c_str (), "keep-alive")) ;
 
   /*If the HTTP header was sent do not send it again. */
   if (!ConnInfo->headerSent)
@@ -900,7 +900,7 @@ int Isapi::send (HttpThreadContext* td,
       HttpRequestHeader::Entry *connection
         = connTable[connIndex].td->request.other.get ("connection");
 
-      if (connection && !stringcmpi (connection->value.c_str (), "keep-alive"))
+      if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
         connTable[connIndex].chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
 
       switch (ret)

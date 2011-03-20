@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -172,40 +172,44 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
         }
       else
         {
-          if (! FilesUtility::nodeExists (tmpCgiPath.c_str ()))
+          if (tmpCgiPath.length () > 0)
             {
-              if (tmpCgiPath.length () > 0)
-                td->connection->host->warningsLogWrite
-                         (_("Cgi: cannot find the %s file")),
-                         tmpCgiPath.c_str ();
-              else
-                td->connection->host->warningsLogWrite
-                           (_("Cgi: Executable file not specified"));
+              if (! FilesUtility::nodeExists (tmpCgiPath.c_str ()))
+                {
+                  td->connection->host->warningsLogWrite
+                    (_("Cgi: cannot find the %s file")),
+                    tmpCgiPath.c_str ();
 
-              td->scriptPath.assign ("");
-              td->scriptFile.assign ("");
-              td->scriptDir.assign ("");
-              chain.clearAllFilters ();
-              return td->http->raiseHTTPError (500);
+                  td->scriptPath.assign ("");
+                  td->scriptFile.assign ("");
+                  td->scriptDir.assign ("");
+                  chain.clearAllFilters ();
+                  return td->http->raiseHTTPError (500);
+                }
+
+              spi.arg.assign (moreArg);
+              spi.arg.append (" ");
+
+              cmdLine << "\"" << td->cgiRoot << "/" << td->cgiFile << "\" "  << moreArg;
+
+              spi.cmd.assign (td->cgiRoot);
+              spi.cmd.append ("/");
+              spi.cmd.append (td->cgiFile);
+            }
+          else
+            {
+              spi.cmd.append ("./");
+              spi.cmd.append (td->scriptFile);
             }
 
-          spi.arg.assign (moreArg);
-          spi.arg.append (" ");
+          spi.arg.append (" ./");
           spi.arg.append (td->scriptFile);
 
-          cmdLine << "\"" << td->cgiRoot << "/" << td->cgiFile << "\" "
-                  << moreArg << " " << td->scriptFile;
+          cmdLine << " ./" << td->scriptFile;
 
-          spi.cmd.assign (td->cgiRoot);
-          spi.cmd.append ("/");
-          spi.cmd.append (td->cgiFile);
-
-          if (td->cgiFile.length () > 4 && td->cgiFile[0] == 'n'
-              && td->cgiFile[1] == 'p' && td->cgiFile[2] == 'h'
-              && td->cgiFile[3] == '-' )
-            nph = true;
-          else
-            nph = false;
+          nph = td->scriptFile.length () > 4 && td->scriptFile[0] == 'n'
+            && td->scriptFile[1] == 'p' && td->scriptFile[2] == 'h'
+            && td->scriptFile[3] == '-';
         }
 
       /*
@@ -313,50 +317,47 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
       ff->chain (&chain, td->mime->filters, td->connection->socket, &nbw, 1);
     }
 
-  if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
+  /* Send the rest of the data until we can read from the pipe.  */
+  for (;;)
     {
-      /* Send the rest of the data until we can read from the pipe.  */
-      for (;;)
+      nBytesRead = 0;
+      int aliveProcess = 0;
+      u_long ticks = getTicks () - procStartTime;
+      u_long timeout = td->http->getTimeout ();
+      if (timeout <= ticks
+          || stdOutFile.waitForData ((timeout - ticks) / 1000,
+                                     (timeout - ticks) % 1000) == 0)
         {
-          nBytesRead = 0;
-          int aliveProcess = 0;
-          u_long ticks = getTicks () - procStartTime;
-          u_long timeout = td->http->getTimeout ();
-          if (timeout <= ticks
-              || stdOutFile.waitForData ((timeout - ticks) / 1000,
-                                         (timeout - ticks) % 1000) == 0)
-            {
-              td->connection->host->warningsLogWrite (_("Cgi: process %i timeout"),
-                                                      cgiProc.getPid ());
-              break;
-            }
-
-          aliveProcess = !stdOutFile.pipeTerminated ();
-
-          /* Read data from the process standard output file.  */
-          stdOutFile.read (td->auxiliaryBuffer->getBuffer (),
-                           td->auxiliaryBuffer->getRealLength (),
-                           &nBytesRead);
-
-          if (!aliveProcess && !nBytesRead)
-            break;
-
-          if (nBytesRead)
-            HttpDataHandler::appendDataToHTTPChannel (td,
-                                             td->auxiliaryBuffer->getBuffer (),
-                                                      nBytesRead,
-                                                      &(td->outputData),
-                                                      &chain,
-                                                      td->appendOutputs,
-                                                      useChunks);
-
-          nbw += nBytesRead;
+          td->connection->host->warningsLogWrite (_("Cgi: process %i timeout"),
+                                                  cgiProc.getPid ());
+          break;
         }
 
-      /* Send the last null chunk if needed.  */
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      aliveProcess = !stdOutFile.pipeTerminated ();
+
+      /* Read data from the process standard output file.  */
+      stdOutFile.read (td->auxiliaryBuffer->getBuffer (),
+                       td->auxiliaryBuffer->getRealLength (),
+                       &nBytesRead);
+
+      if (!aliveProcess && !nBytesRead)
+        break;
+
+      if (nBytesRead)
+        HttpDataHandler::appendDataToHTTPChannel (td,
+                                                  td->auxiliaryBuffer->getBuffer (),
+                                                  nBytesRead,
+                                                  &(td->outputData),
+                                                  &chain,
+                                                  td->appendOutputs,
+                                                  useChunks);
+
+      nbw += nBytesRead;
     }
+
+  /* Send the last null chunk if needed.  */
+  if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
+    return HttpDataHandler::RET_FAILURE;
 
   /* Update the Content-length field for logging activity.  */
   td->sentData += nbw;

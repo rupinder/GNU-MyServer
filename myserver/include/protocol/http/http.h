@@ -1,8 +1,8 @@
 /* -*- mode: c++ -*- */
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-  Free Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+  2011 Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -85,18 +85,18 @@ public:
   int sendHTTPResource (string& filename,
                         bool systemrequest = false,
                         bool onlyHeader = false,
-                        bool yetMapped = false);
+                        bool mapped = false);
 
   int putHTTPRESOURCE (string &filename,
                        bool systemrequest = false,
                        bool onlyHeader = false,
-                       bool yetMapped = false);
+                       bool mapped = false);
 
   int optionsHTTPRESOURCE (string &filename,
-                           bool yetMapped = false);
+                           bool mapped = false);
 
   int traceHTTPRESOURCE (string& filename,
-                         bool yetMapped = false);
+                         bool mapped = false);
 
   bool allowMethod (const char *name);
 
@@ -146,12 +146,12 @@ public:
   static int loadProtocolStatic ();
 
   u_long getTimeout ();
-  int preprocessHttpRequest (string& filename, bool yetmapped,
+  int preprocessHttpRequest (string& filename, bool mapped,
                              int* permissions, bool systemrequest);
 
   int getFilePermissions (string& filename, string& directory,
                           string& file, string &filenamePath,
-                          bool yetmapped, int* permissions);
+                          bool mapped, int* permissions);
 
   SecurityToken *getSecurityToken (){return &(td->securityToken);}
   HttpProtocol *getStaticData () {return staticData;}
@@ -190,6 +190,8 @@ public:
   HttpProtocol ()
   {
     protocolOptions = 0;
+    timeout = 0;
+    allowVhostMime = false;
   }
 
   virtual ~HttpProtocol ()
@@ -223,10 +225,10 @@ public:
   DynHttpManagerList *getDynManagerList (){return &dynManagerList;}
 
   u_long getTimeout () {return timeout;}
-  int getAllowVhostMime () {return allowVhostMime;}
+  bool getAllowVhostMime () {return allowVhostMime;}
 private:
   u_long timeout;
-  int allowVhostMime;
+  bool allowVhostMime;
 
   DynHttpCommandManager dynCmdManager;
   DynHttpManagerList dynManagerList;

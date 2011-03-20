@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2005, 2006, 2007, 2009, 2010 Free Software Foundation,
-  Inc.
+  Copyright (C) 2005, 2006, 2007, 2009, 2010, 2011 Free Software
+  Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -86,9 +86,9 @@ bool HttpRequestHeader::isKeepAlive ()
 {
   Entry *connection = other.get ("connection");
   if (connection)
-    return (! stringcmpi (connection->value,
+    return (! strcasecmp (connection->value,
                           "keep-alive"))
-      || (! stringcmpi (connection->value,
+      || (! strcasecmp (connection->value,
                         "TE"));
 
   return false;

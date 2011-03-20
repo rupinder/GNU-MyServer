@@ -1,6 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2006, 2008, 2009, 2010 Free Software Foundation, Inc.
+  Copyright (C) 2006, 2008, 2009, 2010, 2011 Free Software Foundation,
+  Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -24,11 +25,11 @@ FileStreamCreator::create (FiltersFactory* ff, string location,
 {
   File *out = new File ();
   FiltersChain *fc = NULL;
-  char *path = const_cast<char*>(location.c_str ());
   try
     {
       size_t nbw;
-      out->openFile (path, FileStream::defaultFileMask);
+      out->openFile (location.c_str (),
+                     FileStream::defaultFileMask);
       fc = ff->chain (filters, out, &nbw);
       if (fc)
         return new FileStream (ff, cycle, out, fc);

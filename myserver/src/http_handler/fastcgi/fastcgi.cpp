@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -235,11 +235,8 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
               switch (header.type)
                 {
                 case FCGISTDERR:
-                  con.sock.close ();
-                  td->http->raiseHTTPError (501);
-                  exit = 1;
-                  ret = HttpDataHandler::RET_FAILURE;
-                  break;
+
+                  /* Fall trough.  */
 
                 case FCGISTDOUT:
                   headerCompleted = false;
@@ -258,10 +255,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
                     }
 
                   if (headerCompleted)
-                    {
-                      exit = 1;
-                      break;
-                    }
+                    exit = 1;
 
                   break;
 
@@ -290,11 +284,11 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
                   toPad -= nbr;
                 }
             }
-        }while (!exit);
+        }
+      while (! exit);
 
       /* Send the last null chunk if needed.  */
-      if (!responseCompleted && con.useChunks &&
-          (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL))
+      if (!responseCompleted && con.useChunks && !onlyHeader)
         chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
 
       chain.clearAllFilters ();
@@ -621,11 +615,11 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
 
       dataRead += nbr;
 
-      if (!con->headerSent)
+      if (! con->headerSent)
         return handleHeader (con, chain, responseCompleted, onlyHeader);
     }
 
-  if (onlyHeader || con->td->response.getStatusType () != HttpResponseHeader::SUCCESSFUL)
+  if (onlyHeader)
     return 1;
 
   HttpDataHandler::appendDataToHTTPChannel (con->td,
@@ -718,8 +712,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
   con->headerSent = true;
 
   /* Flush the buffer if remaining data is present.  */
-  if (con->td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL &&
-      size - headerSize)
+  if (size - headerSize)
     {
       HttpDataHandler::appendDataToHTTPChannel (con->td,
                                                 con->td->buffer->getBuffer () + headerSize,
@@ -765,7 +758,7 @@ int FastCgi::readHeader (FcgiContext *con, FcgiHeader* header, u_long started,
       nbr = con->sock.recv (buffer + readData, sizeof (FcgiHeader) - readData,
                             0, timeout - (ticks - started));
 
-      if (nbr == static_cast<size_t>(-1) || nbr == 0)
+      if (nbr == 0)
         return 1;
 
       readData += nbr;

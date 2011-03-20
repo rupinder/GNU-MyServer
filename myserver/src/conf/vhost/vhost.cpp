@@ -1,7 +1,7 @@
 /*
   MyServer
-  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010 Free
-  Software Foundation, Inc.
+  Copyright (C) 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 2011
+  Free Software Foundation, Inc.
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
@@ -185,8 +185,8 @@ Vhost::openWarningLog (string location, list<string>& filters, u_long cycle)
 int
 Vhost::openLogFiles ()
 {
-  return logManager->count (this, accessLogType) == 0 ||
-    logManager->count (this, warningLogType) == 0;
+  return logManager->count (this, accessLogType) == 0
+    || logManager->count (this, warningLogType) == 0;
 }
 
 /*!
@@ -226,7 +226,7 @@ void Vhost::removeHost (const char *host)
       /*
         If this is the virtual host with the right IP.
        */
-      if (!stringcmp (sr->name, host))
+      if (!strcmp (sr->name, host))
         {
           hostList.erase (i);
           return;
@@ -252,7 +252,7 @@ int Vhost::isHostAllowed (const char* host)
       if (sr->regex.isCompiled () &&!sr->regex.exec (host, 1, &pm, REG_NOTBOL))
         return 1;
 
-      if (!stringcmp (sr->name, host))
+      if (!strcmp (sr->name, host))
         return 1;
 
       i++;
