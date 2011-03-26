@@ -1,11 +1,11 @@
 #include <include/http_handler/mscgi/mscgi_manager.h>
 
-static int isNumber (char* s)
+static int isNumber (char *s)
 {
-  if (!s)
+  if (! s)
     return 0;
   for (u_long i = 0; i < strlen (s); i++)
-    if (!isdigit (s[i]))
+    if (! isdigit (s[i]))
       return 0;
   return 1;
 }
@@ -17,7 +17,7 @@ EXPORTABLE(int) myserver_main (char *cmd, MsCgiData* data)
 {
   try
     {
-      MscgiManager cm(data);
+      MscgiManager cm (data);
       program_name = cmd;
       if (strlen (cmd) == 0)
         {
@@ -64,7 +64,7 @@ EXPORTABLE(int) myserver_main (char *cmd, MsCgiData* data)
             validNumbers = 0;
 
           tmp = cm.getParam ("b");
-          if (tmp && !isNumber(tmp))
+          if (tmp && !isNumber (tmp))
             validNumbers = 0;
 
           if (validNumbers)
@@ -91,15 +91,11 @@ EXPORTABLE(int) myserver_main (char *cmd, MsCgiData* data)
                   cm.write (tmp);
                 }
               else
-                cm.write("0");
+                cm.write ("0");
 
-              cm.write(" = ");
+              cm.write (" = ");
               iRes = a + b;
-#ifdef	WIN32
-              _i64toa(iRes, res, 10);
-#else
-              sprintf(res,"%i", (int) iRes);
-#endif
+              sprintf (res,"%i", (int) iRes);
               cm.write (res);
             }
           else

@@ -115,8 +115,9 @@ DEFINE_THREAD (clients_thread, pParam)
 #ifdef WIN32
     return 1;
 #endif
+
 #ifdef HAVE_PTHREAD
-  return (void*)1;
+  return (void *) 1;
 #endif
 
   ct->threadIsRunning = true;

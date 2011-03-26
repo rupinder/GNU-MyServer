@@ -173,10 +173,6 @@ void Server::start (string &mainConf, string &mimeConf, string &vhostConf,
 
 {
   int err = 0;
-#ifdef WIN32
-  DWORD eventsCount, cNumRead;
-  INPUT_RECORD irInBuf[128];
-#endif
 
   this->genMainConf = genMainConf;
 
