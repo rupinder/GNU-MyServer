@@ -66,7 +66,6 @@ void registerSignals ();
 void Sig_Quit (int signal)
 {
   Server::getInstance ()->log ("Exiting...");
-  sync ();
   Server::getInstance ()->stop ();
   registerSignals ();
 }
