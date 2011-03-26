@@ -93,12 +93,12 @@ public:
     time_t epoch = 0;
     string out;
     const char* ret = getRFC822GMTTime (epoch, out);
-    CPPUNIT_ASSERT (! strcasecmp (ret, "Thu, 1 Jan 1970 00:00:00 GMT"));
-    CPPUNIT_ASSERT (! strcasecmp (out.c_str (), "Thu, 1 Jan 1970 00:00:00 GMT"));
+    CPPUNIT_ASSERT (! strcasecmp (ret, "Thu, 01 Jan 1970 00:00:00 GMT"));
+    CPPUNIT_ASSERT (! strcasecmp (out.c_str (), "Thu, 01 Jan 1970 00:00:00 GMT"));
 
     ret = getRFC822GMTTime (1009972800, out);
-    CPPUNIT_ASSERT (! strcasecmp (ret, "Wed, 2 Jan 2002 12:00:00 GMT"));
-    CPPUNIT_ASSERT (! strcasecmp (out.c_str (), "Wed, 2 Jan 2002 12:00:00 GMT"));
+    CPPUNIT_ASSERT (! strcasecmp (ret, "Wed, 02 Jan 2002 12:00:00 GMT"));
+    CPPUNIT_ASSERT (! strcasecmp (out.c_str (), "Wed, 02 Jan 2002 12:00:00 GMT"));
   }
 
   void testGetTime ()

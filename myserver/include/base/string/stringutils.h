@@ -40,14 +40,10 @@ const char *getRFC822LocalTime (const time_t, string &out);
 int getCharInString (const char*,const char*,int max);
 
 const char* getLocalLogFormatDate (const time_t t, char* out);
-const char* getGMTLogFormatDate (const time_t t, char* out);
 const char* getLocalLogFormatDate (char* out);
-const char* getGMTLogFormatDate (char* out);
 
 const char* getLocalLogFormatDate (const time_t t, string& out);
-const char* getGMTLogFormatDate (const time_t t, string& out);
 const char* getLocalLogFormatDate (string& out);
-const char* getGMTLogFormatDate (string& out);
 
 time_t getTime (const char* str);
 inline time_t getTime (string const& str){ return getTime (str.c_str ()); }

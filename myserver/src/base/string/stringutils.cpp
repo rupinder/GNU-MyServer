@@ -88,7 +88,7 @@ const char *getRFC822LocalTime (const time_t t, string &out)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (char* out)
+const char *getRFC822GMTTime (char *out)
 {
   time_t ltime;
   time (&ltime);
@@ -98,49 +98,10 @@ const char *getRFC822GMTTime (char* out)
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822GMTTime (const time_t ltime, char* out)
+const char *getRFC822GMTTime (const time_t ltime, char *out)
 {
-  char *asct;
-  char buffer[32];
-  u_long ind = 0;
   tm* gmTime = gmtime (&ltime);
-  gmTime->tm_year += 1900;
-  asct = asctime_r (gmTime, buffer);
-  out[ind++]= asct[0];
-  out[ind++]= asct[1];
-  out[ind++]= asct[2];
-  out[ind++] = ',';
-
-  if (asct[8] != ' ')
-    out[ind++] = ' ';
-
-  out[ind++] = asct[8];
-  out[ind++] = asct[9];
-  out[ind++] = ' ';
-  out[ind++]= asct[4];
-  out[ind++]= asct[5];
-  out[ind++]= asct[6];
-  out[ind++] = ' ';
-
-  sprintf (&out[ind], "%i", gmTime->tm_year);
-  ind += 4;
-
-  out[ind++] = ' ';
-  out[ind++]= asct[11];
-  out[ind++]= asct[12];
-  out[ind++] = ':';
-  out[ind++]= asct[14];
-  out[ind++]= asct[15];
-  out[ind++] = ':';
-  out[ind++]= asct[17];
-  out[ind++]= asct[18];
-  out[ind++] = ' ';
-  out[ind++] = 'G';
-  out[ind++] = 'M';
-  out[ind++] = 'T';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
+  strftime (out, 32, "%a, %d %b %Y %H:%M:%S GMT", gmTime);
   return out;
 }
 
@@ -319,7 +280,7 @@ time_t getTime (const char* str)
 /*!
   This function format current time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (char* out)
+const char *getRFC822LocalTime (char *out)
 {
   time_t ltime;
   time (&ltime);
@@ -328,75 +289,26 @@ const char *getRFC822LocalTime (char* out)
 /*!
   This function formats a time to the RFC 822 format.
  */
-const char *getRFC822LocalTime (const time_t ltime, char* out)
+const char *getRFC822LocalTime (const time_t ltime, char *out)
 {
   char *asct;
   tm result;
-  u_long ind = 0;
-  char buffer[32];
 
   myserver_localtime (&ltime, &result);
+  strftime (out, 32, "%a, %d %b %Y %H:%M:%S %z", &result);
 
-  result.tm_year += 1900;
-  asct = asctime_r (&result, buffer);
-  out[ind++] = asct[0];
-  out[ind++] = asct[1];
-  out[ind++] = asct[2];
-  out[ind++] = ',';
-
-  if (asct[8] != ' ')
-    out[ind++] = ' ';
-
-  out[ind++] = asct[8];
-  out[ind++] = asct[9];
-  out[ind++] = ' ';
-  out[ind++] = asct[4];
-  out[ind++] = asct[5];
-  out[ind++] = asct[6];
-  out[ind++] = ' ';
-
-  sprintf (&out[ind], "%i", result.tm_year);
-  ind += 4;
-
-  out[ind++] = ' ';
-  out[ind++] = asct[11];
-  out[ind++] = asct[12];
-  out[ind++] = ':';
-  out[ind++] = asct[14];
-  out[ind++] = asct[15];
-  out[ind++] = ':';
-  out[ind++] = asct[17];
-  out[ind++] = asct[18];
-  out[ind++] = ' ';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
-  out[ind++] = '\0';
   return out;
 }
 
 /*!
   Get the local time string.
  */
-const char* getLocalLogFormatDate (char* out)
+const char* getLocalLogFormatDate (char *out)
 {
   time_t ltime;
   time (&ltime);
   return getLocalLogFormatDate (ltime, out);
 }
-
-/*!
-  Get the GMT time string.
- */
-const char* getGMTLogFormatDate (char* out)
-{
-  time_t ltime;
-  time (&ltime);
-  return getGMTLogFormatDate (ltime, out);
-}
-
 
 /*!
   Get the local time string.
@@ -410,16 +322,6 @@ const char* getLocalLogFormatDate (const time_t t, string& out)
 }
 
 /*!
-  Get the GMT time string.
- */
-const char* getGMTLogFormatDate (const time_t t, string& out)
-{
-  char buff[32];
-  getGMTLogFormatDate (t, buff);
-  out.assign (buff);
-  return out.c_str ();
-}
-/*!
   Get the local time string.
  */
 const char* getLocalLogFormatDate (string& out)
@@ -431,51 +333,20 @@ const char* getLocalLogFormatDate (string& out)
 }
 
 /*!
-  Get the GMT time string.
- */
-const char* getGMTLogFormatDate (string& out)
-{
-  char buff[32];
-  getGMTLogFormatDate (buff);
-  out.assign (buff);
-  return out.c_str ();
-}
-
-/*!
   Get a string in the format "day/month/year:hour:minute:second offset"
   for the local zone.
  */
-const char* getLocalLogFormatDate (const time_t t, char* out)
+const char* getLocalLogFormatDate (const time_t t, char *out)
 {
   int offset = 0;
   time_t ltime;
-  time (&ltime);
   char *asct;
-  tm gmTime;
+  tm localTime;
   char buffer[32];
 
-  myserver_localtime (&ltime, &gmTime);
+  time (&ltime);
 
-  gmTime.tm_year += 1900;
-  asct = asctime_r (&gmTime, buffer);
-  out[0] = asct[8] != ' ' ? asct[8] : '0';
-  out[1] = asct[9];
-  out[2] = '/';
-  out[3] = asct[4];
-  out[4]= asct[5];
-  out[5] = asct[6];
-  out[6] = '/';
-  sprintf (&out[7], "%i", gmTime.tm_year);
-  out[11] = ':';
-  out[12] = asct[11];
-  out[13] = asct[12];
-  out[14] = ':';
-  out[15] = asct[14];
-  out[16] = asct[15];
-  out[17] = ':';
-  out[18] = asct[17];
-  out[19] = asct[18];
-  out[20] = ' ';
+  myserver_localtime (&ltime, &localTime);
 
 #ifndef WIN32
   extern long timezone;
@@ -488,7 +359,6 @@ const char* getLocalLogFormatDate (const time_t t, char* out)
 
   gettimeofday (&tv, &tz);
   offset = -tz.tz_minuteswest * 60;
-
 # else
   TIME_ZONE_INFORMATION tzi;
   GetTimeZoneInformation (&tzi);
@@ -497,6 +367,9 @@ const char* getLocalLogFormatDate (const time_t t, char* out)
 
 #endif
 
+  strftime (out, 32, "%d/%b/%Y:%H:%M:%S", &localTime);
+  out[20] = ' ';
+
   if (offset < 0)
     {
       offset = -offset;
@@ -504,51 +377,9 @@ const char* getLocalLogFormatDate (const time_t t, char* out)
     }
   else
     out[21] = '+';
+
   sprintf (&out[22], "%.2i%.2i", offset / (60 * 60), offset % (60 * 60) / 60);
-  out[26] = '\0';
-  return out;
-}
 
-
-/*!
-  Get a string in the format "day/month/year:hour:minute:second offset"
-  for the GMT zone.
- */
-const char* getGMTLogFormatDate (const time_t t, char* out)
-{
-  time_t ltime;
-  time (&ltime);
-  char *asct;
-  tm result;
-  char buffer[32];
-
-  myserver_localtime ( &ltime, &result );
-
-  result.tm_year += 1900;
-  asct = asctime_r (&result, buffer);
-  out[0] = asct[8] != ' ' ? asct[8] : '0';
-  out[1] = asct[9];
-  out[2] = '/';
-  out[3] = asct[4];
-  out[4] = asct[5];
-  out[5] = asct[6];
-  out[6] = '/';
-  sprintf (&out[7], "%i", result.tm_year);
-  out[11] = ':';
-  out[12] = asct[11];
-  out[13] = asct[12];
-  out[14] = ':';
-  out[15] = asct[14];
-  out[16] = asct[15];
-  out[17] = ':';
-  out[18] = asct[17];
-  out[19] = asct[18];
-  out[20] = ' ';
-  out[21] = '+';
-  out[22] = '0';
-  out[23] = '0';
-  out[24] = '0';
-  out[25] = '0';
   out[26] = '\0';
   return out;
 }
