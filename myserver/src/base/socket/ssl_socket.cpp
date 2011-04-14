@@ -99,17 +99,22 @@ int SslSocket::shutdown (int how)
  */
 int SslSocket::rawSend (const char* buffer, int len, int flags)
 {
+  int sent = 0;
   int err;
   do
     {
-      err = SSL_write (sslConnection, buffer, len);
-    }while ((err <= 0) &&
-            (SSL_get_error (sslConnection, err) == SSL_ERROR_WANT_WRITE
-             || SSL_get_error (sslConnection, err) == SSL_ERROR_WANT_READ));
-  if (err <= 0)
+      err = SSL_write (sslConnection, buffer + sent, len - sent);
+      if (err > 0)
+        sent += err;
+    }
+  while ((err <= 0
+          && SSL_get_error (sslConnection, err) == SSL_ERROR_WANT_WRITE)
+         || (err > 0 && sent < len));
+
+  if (err < 0)
     return -1;
   else
-    return err;
+    return sent;
 }
 
 /*!
