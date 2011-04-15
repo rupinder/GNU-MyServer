@@ -38,11 +38,10 @@ class SslSocket : public Socket
 {
 public:
 
-  int setSSLContext (SSL_CTX*);
+  int setSSLContext (gnutls_certificate_credentials_t, gnutls_priority_t);
   int sslAccept ();
 
   int freeSSL ();
-  SSL* getSSLConnection ();
 
   virtual int close ();
   virtual int shutdown (int how);
@@ -65,14 +64,10 @@ public:
   virtual ~SslSocket ();
 
 protected:
-  bool externalContext;
-  Socket* sock;
-  SSL *sslConnection;
-  SSL_CTX *sslContext;
-  const X509 *clientCert;
-
-  /*! This is used only by clients sockets.  */
-  SSL_METHOD* sslMethod;
+  gnutls_certificate_credentials_t cred;
+  gnutls_session_t session;
+  gnutls_priority_t priority;
+  Socket *sock;
 };
 
 

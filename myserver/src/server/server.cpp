@@ -127,7 +127,6 @@ int Server::loadLibraries ()
   XmlParser::startXML ();
   myserver_safetime_init ();
 
-  gnutls_global_init ();
   if (Socket::startupSocketLib () != 0)
     {
       log (MYSERVER_LOG_MSG_ERROR, _("Error loading the socket library"));
@@ -1205,12 +1204,12 @@ ConnectionPtr Server::addConnectionToList (Socket* s,
   if (doSSLhandshake)
     {
       int ret = 0;
-      SSL_CTX* ctx = newConnection->host->getSSLContext ();
       SslSocket *sslSocket = new SslSocket (s);
 
-      sslSocket->setSSLContext (ctx);
-      ret = sslSocket->sslAccept ();
+      sslSocket->setSSLContext (newConnection->host->getSSLContext (),
+                                newConnection->host->getSSLPriorityCache ());
 
+      ret = sslSocket->sslAccept ();
       if (ret < 0)
         {
           connectionsPoolLock.lock ();

@@ -37,7 +37,6 @@
 # include <arpa/inet.h>
 #endif
 
-
 #include <sstream>
 
 using namespace std;
@@ -47,24 +46,16 @@ using namespace std;
  */
 SslSocket::SslSocket (Socket* sock) : Socket (sock)
 {
+  session = NULL;
   this->sock = sock;
   this->fd = sock->getHandle ();
-  sslConnection = 0;
-  sslContext = 0;
-  clientCert = 0;
-  sslMethod = 0;
-  externalContext = false;
 }
 
 SslSocket::SslSocket ()
 {
+  session = NULL;
   this->sock = NULL;
   this->fd = -1;
-  sslConnection = 0;
-  sslContext = 0;
-  clientCert = 0;
-  sslMethod = 0;
-  externalContext = false;
 }
 
 SslSocket::~SslSocket ()
@@ -86,9 +77,7 @@ int SslSocket::close ()
  */
 int SslSocket::shutdown (int how)
 {
-  if (sslConnection)
-    SSL_shutdown (sslConnection);
-
+  gnutls_bye (session, GNUTLS_SHUT_WR);
   return checked::shutdown (fd, how);
 }
 
@@ -103,16 +92,15 @@ int SslSocket::rawSend (const char* buffer, int len, int flags)
   int err;
   do
     {
-      err = SSL_write (sslConnection, buffer + sent, len - sent);
+      err = gnutls_record_send (session, buffer, len);
       if (err > 0)
         sent += err;
     }
-  while ((err <= 0
-          && SSL_get_error (sslConnection, err) == SSL_ERROR_WANT_WRITE)
+  while (err == GNUTLS_E_INTERRUPTED || err == GNUTLS_E_AGAIN
          || (err > 0 && sent < len));
 
   if (err < 0)
-    return -1;
+    return err;
   else
     return sent;
 }
@@ -122,6 +110,8 @@ int SslSocket::rawSend (const char* buffer, int len, int flags)
  */
 int SslSocket::connect (MYSERVER_SOCKADDR* sa, int na)
 {
+  int ret;
+
   if ( sa == NULL || (sa->ss_family != AF_INET && sa->ss_family != AF_INET6) )
     return 1;
   if ( (sa->ss_family == AF_INET && na != sizeof (sockaddr_in))
@@ -131,52 +121,42 @@ int SslSocket::connect (MYSERVER_SOCKADDR* sa, int na)
        )
     return 1;
 
-  sslMethod = SSLv23_client_method ();
-  /*! Create the local context. */
-  sslContext = SSL_CTX_new (sslMethod);
-  if (sslContext == 0)
-    return -1;
+  gnutls_init (&session, GNUTLS_CLIENT);
+
+  gnutls_priority_set_direct (session, "PERFORMANCE:+ANON-DH:!ARCFOUR-128",
+                              NULL);
+
+  gnutls_certificate_allocate_credentials (&cred);
+  gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, cred);
 
   /*! Do the TCP connection.  */
-  if (checked::connect (fd, (sockaddr *) sa, na))
-    {
-      SSL_CTX_free (sslContext);
-      sslContext = 0;
-      return -1;
-    }
-  sslConnection = SSL_new (sslContext);
-  if (sslConnection == 0)
-    {
-      SSL_CTX_free (sslContext);
-      sslContext = 0;
-      return -1;
-    }
+  checked::connect (fd, (sockaddr *) sa, na);
 
-#ifdef WIN32
-  SSL_set_fd (sslConnection, FD_TO_SOCKET (fd));
-#else
-  SSL_set_fd (sslConnection, fd);
+#ifndef FD_TO_SOCKET
+# define FD_TO_SOCKET(x) (x)
 #endif
 
-  if (SSL_connect (sslConnection) < 0)
-    {
-      SSL_CTX_free (sslContext);
-      sslContext = 0;
-      return -1;
-    }
+  gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t) FD_TO_SOCKET (fd));
 
-  externalContext = false;
-  return 0;
+#undef FD_TO_SOCKET
+
+  do
+    {
+      ret = gnutls_handshake (session);
+    }
+  while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+
+  return ret;
 }
 
 /*!
   Set the SSL context.
  */
-int SslSocket::setSSLContext (SSL_CTX* context)
+int SslSocket::setSSLContext (gnutls_certificate_credentials_t cred,
+                              gnutls_priority_t priority)
 {
-  sslContext = context;
-  externalContext = true;
-  return 1;
+  this->cred = cred;
+  this->priority = priority;
 }
 
 /*!
@@ -184,28 +164,10 @@ int SslSocket::setSSLContext (SSL_CTX* context)
  */
 int SslSocket::freeSSL ()
 {
-  /*! free up the SSL context. */
-  if (sslConnection)
-    {
-      SSL_free (sslConnection);
-      sslConnection = 0;
-    }
-
-  if (sslContext && !externalContext)
-    {
-      SSL_CTX_free (sslContext);
-      sslContext = 0;
-    }
-  return 1;
-}
-
-
-/*!
-  Returns the SSL connection.
- */
-SSL* SslSocket::getSSLConnection ()
-{
-  return sslConnection;
+  if (session != NULL)
+    gnutls_deinit (session);
+  session = NULL;
+  return 0;
 }
 
 /*!
@@ -214,48 +176,28 @@ SSL* SslSocket::getSSLConnection ()
  */
 int SslSocket::sslAccept ()
 {
-  int sslAccept;
-  if (sslContext == 0)
-    return -1;
+  int ret;
+  gnutls_init (&session, GNUTLS_SERVER);
+  gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, cred);
+  gnutls_certificate_server_set_request (session, GNUTLS_CERT_REQUEST);
+  gnutls_session_enable_compatibility_mode (session);
+  gnutls_priority_set (session, priority);
+  gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, cred);
 
-  if (sslConnection)
-    freeSSL ();
-
-  sslConnection = SSL_new (sslContext);
-  if (sslConnection == 0)
-    {
-      freeSSL ();
-      return -1;
-    }
-
-#ifdef WIN32
-  if (SSL_set_fd (sslConnection, FD_TO_SOCKET (fd)) == 0)
-#else
-  if (SSL_set_fd (sslConnection, fd) == 0)
+#ifndef FD_TO_SOCKET
+# define FD_TO_SOCKET(x) (x)
 #endif
-    {
-      shutdown (2);
-      freeSSL ();
-      return -1;
-    }
+
+  gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t) FD_TO_SOCKET (fd));
+
+#undef FD_TO_SOCKET
 
   do
     {
-      sslAccept = SSL_accept (sslConnection);
+      ret = gnutls_handshake (session);
     }
-  while (sslAccept != 1
-         && SSL_get_error (sslConnection, sslAccept) == SSL_ERROR_WANT_READ);
-
-  if (sslAccept != 1)
-    {
-      shutdown (2);
-      freeSSL ();
-      return -1;
-    }
-
-  clientCert = SSL_get_peer_certificate (sslConnection);
-
-  return 0;
+  while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+  return ret;
 }
 
 
@@ -267,30 +209,18 @@ int SslSocket::recv (char* buffer, int len, int flags)
 {
   int err = 0;
 
-  if (sslConnection)
+  for (;;)
     {
-      for (;;)
+      do
         {
-          int sslError;
-          err = SSL_read (sslConnection, buffer, len);
-
-          if (err > 0)
-            break;
-
-          sslError = SSL_get_error (sslConnection, err);
-
-          if ((sslError != SSL_ERROR_WANT_READ)
-              && (sslError != SSL_ERROR_WANT_WRITE))
-            break;
+          err = gnutls_record_recv (session, buffer, len);
         }
-
-      if (err <= 0)
-        return -1;
-      else
-        return err;
+      while (err == GNUTLS_E_INTERRUPTED || err == GNUTLS_E_AGAIN);
+      if (err > 0)
+        break;
     }
 
-  return 0;
+  return err;
 }
 
 /*!
@@ -298,10 +228,9 @@ int SslSocket::recv (char* buffer, int len, int flags)
  */
 u_long SslSocket::bytesToRead ()
 {
-  u_long nBytesToRead = 0;
+  size_t nBytesToRead = 0;
 
-  nBytesToRead = SSL_pending (sslConnection);
-
+  nBytesToRead = gnutls_record_check_pending(session);
   if (nBytesToRead)
     return nBytesToRead;
 

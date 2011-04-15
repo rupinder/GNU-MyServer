@@ -209,11 +209,6 @@ fi
 AC_CHECK_LIB(gpg-error, gpg_err_init)
 AC_CHECK_LIB(gcrypt, gcry_control)
 AC_CHECK_LIB(gnutls, main)
-AC_CHECK_LIB(gnutls-openssl, main)
-
-if test x$ac_cv_lib_gnutls_openssl_main != xyes; then
-   AC_MSG_ERROR([Cannot find ssl libraries, gnutls is required])
-fi
 
 dnl Looking for zlib
 AC_CHECK_LIB(z, uncompress, have_libz=yes)

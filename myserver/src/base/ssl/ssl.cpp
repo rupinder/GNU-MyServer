@@ -48,9 +48,8 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 SslContext::SslContext ()
 {
-  context = 0;
-  method = 0;
-
+  cred = NULL;
+  priority_cache = NULL;
   certificateFile.assign ("");
   privateKeyFile.assign ("");
 }
@@ -60,50 +59,45 @@ SslContext::SslContext ()
  */
 int SslContext::initialize ()
 {
-  context = 0;
-  method = 0;
-  method = SSLv23_server_method ();
-  context = SSL_CTX_new (method);
-
-  if (!context)
-    return -1;
   /*
     The specified file doesn't exist.
    */
-  if (FilesUtility::nodeExists (certificateFile.c_str ()) == 0)
+  if (FilesUtility::nodeExists (certificateFile.c_str ()) == 0
+      || FilesUtility::nodeExists (privateKeyFile) == 0)
     return -1;
 
-  if (SSL_CTX_use_certificate_file (context, certificateFile.c_str (),
-                                    SSL_FILETYPE_PEM) != 1)
-    return -1;
+  gnutls_priority_init (&priority_cache, "NORMAL", NULL);
 
-  /*
-    The specified file doesn't exist.
-   */
-  if (FilesUtility::nodeExists (privateKeyFile) == 0)
-    return -1;
+  gnutls_certificate_allocate_credentials (&cred);
 
-  if (SSL_CTX_use_PrivateKey_file (context, privateKeyFile.c_str (),
-                                  SSL_FILETYPE_PEM) != 1)
-    return -1;
+  gnutls_certificate_set_x509_trust_file (cred, certificateFile.c_str (),
+                                          SSL_FILETYPE_PEM);
+
+  /*TODO*/
+  gnutls_certificate_set_x509_crl_file (cred, "", GNUTLS_X509_FMT_PEM);
+
+  gnutls_certificate_set_x509_key_file (cred, certificateFile.c_str (),
+                                        privateKeyFile.c_str (),
+                                        GNUTLS_X509_FMT_PEM);
+
+
+  gnutls_dh_params_init (&dh_params);
+  gnutls_dh_params_generate2 (dh_params, 1024);
+  gnutls_certificate_set_dh_params (cred, dh_params);
 
   return 1;
 }
 
 int SslContext::free ()
 {
-  int ret = 0;
-  if (context)
-    {
-      SSL_CTX_free (context);
-      ret = 1;
-      context = 0;
-    }
-  else
-    ret = 0;
-  certificateFile.assign ("");
-  privateKeyFile.assign ("");
-  return ret;
+  if (cred)
+    gnutls_certificate_free_credentials (cred);
+  cred = NULL;
+
+  if (priority_cache)
+    gnutls_priority_deinit (priority_cache);
+  priority_cache = NULL;
+  return 0;
 }
 
 #if !HAVE_LIBGCRYPT || !HAVE_PTHREAD
