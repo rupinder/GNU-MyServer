@@ -50,25 +50,25 @@ public:
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void checkDataChunks (HttpThreadContext*, bool*, bool*);
+  static void checkDataChunks (HttpThreadContext *, bool *, bool *);
 
-  static int appendDataToHTTPChannel (HttpThreadContext* td,
-                                      char* buffer,
-                                      u_long size,
-                                      File* appendFile,
-                                      FiltersChain* chain,
-                                      bool append,
-                                      bool useChunks,
-                                      u_long realBufferSize,
-                                      MemoryStream *tmpStream);
+  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
+                                         char *buffer,
+                                         size_t size,
+                                         File *appendFile,
+                                         FiltersChain *chain,
+                                         bool append,
+                                         bool useChunks,
+                                         size_t realBufferSize,
+                                         MemoryStream *tmpStream);
 
-  static int appendDataToHTTPChannel (HttpThreadContext* td,
-                                      char* buffer,
-                                      u_long size,
-                                      File* appendFile,
-                                      FiltersChain* chain,
-                                      bool append,
-                                      bool useChunks);
+  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
+                                         char *buffer,
+                                         size_t size,
+                                         File *appendFile,
+                                         FiltersChain* chain,
+                                         bool append,
+                                         bool useChunks);
 
 };
 

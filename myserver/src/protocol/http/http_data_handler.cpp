@@ -75,15 +75,15 @@ int HttpDataHandler::unLoad ()
   \param tmpStream A support on memory read/write stream used
   internally by the function.
  */
-int HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td,
-                                              char* buffer,
-                                              u_long size,
-                                              File* appendFile,
-                                              FiltersChain* chain,
-                                              bool append,
-                                              bool useChunks,
-                                              u_long realBufferSize,
-                                              MemoryStream *tmpStream)
+size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
+                                                 char *buffer,
+                                                 size_t size,
+                                                 File *appendFile,
+                                                 FiltersChain *chain,
+                                                 bool append,
+                                                 bool useChunks,
+                                                 size_t realBufferSize,
+                                                 MemoryStream *tmpStream)
 {
   size_t nbr, nbw;
   Stream *oldStream = chain->getStream ();
@@ -101,25 +101,12 @@ int HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td,
    */
   chain->setStream (tmpStream);
 
-  if (chain->write (buffer, size, &nbw))
-    {
-      td->connection->host->warningsLogWrite (_("Http: internal error"));
-      return 1;
-    }
+  chain->write (buffer, size, &nbw);
 
-
-  if (tmpStream->read (buffer, realBufferSize, &nbr))
-    {
-      td->connection->host->warningsLogWrite (_("Http: internal error"));
-      return 1;
-    }
+  tmpStream->read (buffer, realBufferSize, &nbr);
 
   chain->setStream (oldStream);
 
-  /*
-   *Use of chain->getStream () is needed to write directly on the
-   *final stream.
-   */
   return appendDataToHTTPChannel (td, buffer, nbr, appendFile, chain, append,
                                   useChunks);
 }
@@ -135,58 +122,46 @@ int HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td,
   \param append Append to the file?
   \param useChunks Can we use HTTP chunks to send data?
  */
-int
-HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td, char* buffer,
-                           u_long size, File* appendFile, FiltersChain* chain,
+size_t
+HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td,
+                                          char *buffer,
+                                          size_t size,
+                                          File *appendFile,
+                                          FiltersChain *chain,
                                           bool append, bool useChunks)
 {
-  size_t nbw;
-
+  size_t tmp, nbw = 0;
   if (chain->hasModifiersFilters ())
     {
       td->connection->host->warningsLogWrite (_("Http: internal error"));
-      return 1;
+      return 0;
     }
 
   if (append)
-    return appendFile->writeToFile (buffer, size, &nbw);
-  else
     {
-      if (useChunks)
-        {
-          ostringstream chunkHeader;
-          size_t flushNbw = 0;
-          chunkHeader << hex << size << "\r\n";
-
-          if (chain->flush (&flushNbw))
-            {
-              td->connection->host->warningsLogWrite (_("Http: internal error"));
-              return 1;
-            }
-
-          if (chain->getStream ()->write (chunkHeader.str ().c_str (),
-                                          chunkHeader.str ().length (), &nbw))
-            {
-              td->connection->host->warningsLogWrite (_("Http: internal error"));
-              return 1;
-            }
-        }
-
-      if (size && chain->write (buffer, size, &nbw))
-        {
-          td->connection->host->warningsLogWrite (_("Http: internal error"));
-          return 1;
-        }
-
-      if (useChunks && chain->getStream ()->write ("\r\n", 2, &nbw))
-        {
-          td->connection->host->warningsLogWrite (_("Http: internal error"));
-          return 1;
-        }
-
-      return 0;
+      appendFile->writeToFile (buffer, size, &nbw);
+      return nbw;
     }
-  return 1;
+
+  if (useChunks)
+    {
+      ostringstream chunkHeader;
+      size_t flushNbw = 0;
+      chunkHeader << hex << size << "\r\n";
+
+      chain->flush (&flushNbw);
+
+      chain->getStream ()->write (chunkHeader.str ().c_str (),
+                                  chunkHeader.str ().length (), &tmp);
+    }
+
+  if (size)
+    chain->write (buffer, size, &nbw);
+
+  if (useChunks)
+    chain->getStream ()->write ("\r\n", 2, &tmp);
+
+  return nbw;
 }
 
 /*!
