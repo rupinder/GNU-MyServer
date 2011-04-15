@@ -333,7 +333,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       }
 
     useModifiers = chain.hasModifiersFilters ();
-    if (!useModifiers)
+    if (! useModifiers)
       {
         ostringstream buffer;
         buffer << bytesToSend;
@@ -459,8 +459,10 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         if (bytesToSend)
           {
             /* Read from the file the bytes to send.  */
-            size_t size = std::min (bytesToSend,
-                                    td->buffer->getRealLength () / 2);
+            size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
+
+            if (useModifiers)
+              size = std::min (size, td->auxiliaryBuffer->getRealLength () / 2);
 
             file->read (td->buffer->getBuffer (), size, &nbr);
             if (nbr == 0)
@@ -471,10 +473,11 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
             bytesToSend -= nbr;
 
-            appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                           nbr, &(td->outputData), &chain, td->appendOutputs,
-                               useChunks, td->buffer->getRealLength (), &memStream);
-            dataSent += nbr;
+            dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                 nbr, &(td->outputData), &chain,
+                                                 td->appendOutputs, useChunks,
+                                                 td->buffer->getRealLength (),
+                                                 &memStream);
           }
         else /* if (bytesToSend) */
           {
@@ -482,6 +485,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             if (!useChunks)
               {
                 chain.flush (&nbw);
+                dataSent += nbw;
                 break;
               }
             else
@@ -501,11 +505,10 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
                 memStream.read (td->buffer->getBuffer (),
                                 td->buffer->getRealLength (), &nbr);
 
-                HttpDataHandler::appendDataToHTTPChannel (td,
-                                                       td->buffer->getBuffer (),
-                                                       nbr, &(td->outputData),
-                                                       &chain, td->appendOutputs,
-                                                          useChunks);
+                dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                     nbr, &(td->outputData),
+                                                     &chain, td->appendOutputs,
+                                                     useChunks);
                 break;
               }
           }
