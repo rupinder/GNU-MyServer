@@ -1330,7 +1330,6 @@ int Http::raiseHTTPError (int ID)
 
       if (td->lastError)
         {
-          td->connection->host->warningsLogWrite (_("HTTP: recursive error"));
           return sendHTTPhardError500 ();
         }
 
