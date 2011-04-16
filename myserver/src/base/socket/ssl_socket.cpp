@@ -41,6 +41,23 @@
 
 using namespace std;
 
+class SslException : public exception
+{
+public:
+  SslException (int error)
+  {
+    this->error = error;
+  }
+
+  virtual const char *what () const throw ()
+  {
+    return gnutls_strerror (error);
+  }
+
+protected:
+  int error;
+};
+
 /*!
   Constructor of the class.
  */
@@ -77,8 +94,15 @@ int SslSocket::close ()
  */
 int SslSocket::shutdown (int how)
 {
-  gnutls_bye (session, GNUTLS_SHUT_WR);
-  return checked::shutdown (fd, how);
+  int ret;
+
+  ret = gnutls_bye (session, GNUTLS_SHUT_WR);
+  if (ret < 0)
+    throw SslException (ret);
+
+  checked::shutdown (fd, how);
+
+  return ret;
 }
 
 /*!
@@ -89,20 +113,20 @@ int SslSocket::shutdown (int how)
 int SslSocket::rawSend (const char* buffer, int len, int flags)
 {
   int sent = 0;
-  int err;
+  int ret;
   do
     {
-      err = gnutls_record_send (session, buffer, len);
-      if (err > 0)
-        sent += err;
+      ret = gnutls_record_send (session, buffer, len);
+      if (ret > 0)
+        sent += ret;
     }
-  while (err == GNUTLS_E_INTERRUPTED || err == GNUTLS_E_AGAIN
-         || (err > 0 && sent < len));
+  while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN
+         || (ret > 0 && sent < len));
 
-  if (err < 0)
-    return err;
-  else
-    return sent;
+  if (ret < 0)
+    throw SslException (ret);
+
+  return sent;
 }
 
 /*!
@@ -145,6 +169,9 @@ int SslSocket::connect (MYSERVER_SOCKADDR* sa, int na)
       ret = gnutls_handshake (session);
     }
   while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+
+  if (ret < 0)
+    throw SslException (ret);
 
   return ret;
 }
@@ -197,6 +224,10 @@ int SslSocket::sslAccept ()
       ret = gnutls_handshake (session);
     }
   while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+
+  if (ret < 0)
+    throw SslException (ret);
+
   return ret;
 }
 
@@ -207,20 +238,23 @@ int SslSocket::sslAccept ()
  */
 int SslSocket::recv (char* buffer, int len, int flags)
 {
-  int err = 0;
+  int ret = 0;
 
   for (;;)
     {
       do
         {
-          err = gnutls_record_recv (session, buffer, len);
+          ret = gnutls_record_recv (session, buffer, len);
         }
-      while (err == GNUTLS_E_INTERRUPTED || err == GNUTLS_E_AGAIN);
-      if (err > 0)
+      while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
+      if (ret > 0)
         break;
     }
 
-  return err;
+  if (ret < 0)
+    throw SslException (ret);
+
+  return ret;
 }
 
 /*!
@@ -230,7 +264,7 @@ u_long SslSocket::bytesToRead ()
 {
   size_t nBytesToRead = 0;
 
-  nBytesToRead = gnutls_record_check_pending(session);
+  nBytesToRead = gnutls_record_check_pending (session);
   if (nBytesToRead)
     return nBytesToRead;
 
@@ -247,4 +281,3 @@ int SslSocket::dataAvailable (int sec, int usec)
 
   return Socket::dataAvailable (sec, usec);
 }
-
