@@ -1329,9 +1329,7 @@ int Http::raiseHTTPError (int ID)
         }
 
       if (td->lastError)
-        {
-          return sendHTTPhardError500 ();
-        }
+        return sendHTTPhardError500 ();
 
       td->lastError = ID;
 
@@ -1477,12 +1475,15 @@ Internal Server Error\n\
   *td->auxiliaryBuffer << time;
   *td->auxiliaryBuffer << "\r\n\r\n";
 
-  td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
-                                (u_long) td->auxiliaryBuffer->getLength (),
-                                0);
+  if (! td->appendOutputs)
+    {
+      td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
+                                    td->auxiliaryBuffer->getLength (),
+                                    0);
 
-  if (!td->onlyHeader)
-    td->connection->socket->send (hardHTML, (u_long) strlen (hardHTML), 0);
+      if (! td->onlyHeader)
+        td->connection->socket->send (hardHTML, strlen (hardHTML), 0);
+    }
 
   return HttpDataHandler::RET_FAILURE;
 }
