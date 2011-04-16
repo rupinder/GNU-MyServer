@@ -246,14 +246,11 @@ int HomeDir::getHomeDir (string& userName, string& out)
   return FilesUtility::nodeExists (out.c_str ()) ? 0 : 1;
 #elif HAVE_GETPWNAM
   struct passwd *p;
-  int ret = 0;
 
   loadMutex.lock ();
   errno = 0;
   p = ::getpwnam (userName.c_str ());
-  if (p == NULL)
-    ret = 1;
-  else
+  if (p != NULL)
     out.assign (p->pw_dir);
 
   loadMutex.unlock ();
