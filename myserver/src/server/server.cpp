@@ -77,7 +77,6 @@ Server::Server () : connectionsPool (100),
   serverReady = false;
   throttlingRate = 0;
   path = 0;
-  ipAddresses = 0;
   vhostHandler = NULL;
   purgeThreadsThreshold = 1;
   freeThreads = 0;
@@ -150,9 +149,6 @@ Server::~Server ()
   if (path)
     delete path;
   path = 0;
-
-  if (ipAddresses)
-    delete ipAddresses;
 
   if (logManager)
     delete logManager;
@@ -262,13 +258,9 @@ int Server::postLoad ()
   log (MYSERVER_LOG_MSG_INFO, _("Host name: %s"), serverName);
 
   /* Find the IP addresses of the local machine.  */
-  if (ipAddresses)
-    delete ipAddresses;
-  ipAddresses = new string ();
-
   try
     {
-      Socket::getLocalIPsList (*ipAddresses);
+      Socket::getLocalIPsList (ipAddresses);
     }
   catch (exception & e)
     {
@@ -276,7 +268,7 @@ int Server::postLoad ()
       return -1;
     }
 
-  log (MYSERVER_LOG_MSG_INFO, _("IP: %s"), ipAddresses->c_str ());
+  log (MYSERVER_LOG_MSG_INFO, _("IP: %s"), ipAddresses.c_str ());
 
   log (MYSERVER_LOG_MSG_INFO, _("Detected %i CPUs"), (int) getCPUCount ());
 
@@ -742,8 +734,6 @@ int Server::terminate ()
   log (MYSERVER_LOG_MSG_INFO, _("Cleaning memory"));
 
   freeHashedData ();
-
-  ipAddresses = NULL;
 
   if (vhostHandler)
     delete vhostHandler;
@@ -1392,7 +1382,7 @@ void Server::getThreadsNumberInformation (u_long *num, u_long *max,
  */
 const char *Server::getAddresses ()
 {
-  return ipAddresses ? ipAddresses->c_str () : "";
+  return ipAddresses.c_str ();
 }
 
 /*!
