@@ -86,7 +86,7 @@ SslSocket::~SslSocket ()
  */
 int SslSocket::close ()
 {
-  return freeSSL ();
+  return Socket::close ();
 }
 
 /*!
