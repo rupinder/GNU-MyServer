@@ -254,12 +254,10 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
         }
       catch (exception & e)
         {
-          td->connection->host->warningsLogWrite (_E ("WinCGI: error executing %s"),
-                                                  scriptpath, &e);
           FilesUtility::deleteFile (outFilePath);
           FilesUtility::deleteFile (dataFilePath);
           chain.clearAllFilters ();
-          return td->http->raiseHTTPError (500);
+          return HttpDataHandler::RET_FAILURE;
         }
 
       OutFileHandle.openFile (outFilePath, File::FILE_OPEN_ALWAYS | File::READ);
@@ -367,10 +365,8 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
     }
   catch (exception & e)
     {
-      td->connection->host->warningsLogWrite (_E ("WinCGI: internal error"),
-                                              &e);
       chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
   return HttpDataHandler::RET_OK;
 #else

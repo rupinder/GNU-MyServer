@@ -196,9 +196,8 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
     }
   catch (exception & e)
     {
-      td->connection->host->warningsLogWrite (_E ("SCGI: internal error"), &e);
       chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return HttpDataHandler::RET_OK;

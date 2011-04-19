@@ -346,15 +346,15 @@ int WebDAV::propfind (HttpThreadContext* td)
             break;
         }
 
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      if (useChunks)
+        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2);
 
       return HttpDataHandler::RET_OK;
     }
   catch (exception & e)
     {
       td->connection->host->warningsLogWrite ( _E ("WebDAV: Internal Error"), &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 }
 

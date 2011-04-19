@@ -150,7 +150,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
         addConnection (con, destUrl.getHost ().c_str (), destUrl.getPort (),
                        false);
       chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return HttpDataHandler::RET_OK;

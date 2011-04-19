@@ -628,13 +628,10 @@ int HttpDir::send (HttpThreadContext* td,
     }
   catch (exception & e)
     {
-      /* Return an internal server error. */
-      td->outputData.close ();
       chain.clearAllFilters ();
-      td->connection->host->warningsLogWrite (_E ("HttpDir: internal error"),
-                                              &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
+
   chain.clearAllFilters ();
   return HttpDataHandler::RET_OK;
 }

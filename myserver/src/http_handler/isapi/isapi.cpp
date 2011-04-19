@@ -928,10 +928,8 @@ int Isapi::send (HttpThreadContext* td,
     }
   catch (exception & e)
     {
-      td->connection->host->warningsLogWrite (_E ("ISAPI: internal error"),
-                                              &e);
       connTable[connIndex].chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return retvalue;

@@ -132,7 +132,7 @@ int HttpFile::putFile (HttpThreadContext* td, string& filename)
     {
       td->connection->host->warningsLogWrite (_E ("HttpFile: internal error"),
                                               &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     };
 }
 
@@ -149,20 +149,20 @@ int HttpFile::deleteFile (HttpThreadContext* td,
       if (! (td->permissions & MYSERVER_PERMISSION_DELETE))
         return td->http->sendAuth ();
 
-      if (FilesUtility::nodeExists (td->filenamePath))
+      if (! FilesUtility::nodeExists (td->filenamePath))
+        return td->http->raiseHTTPError (204);
+      else
         {
           FilesUtility::deleteFile (td->filenamePath.c_str ());
           return td->http->raiseHTTPError (202);
         }
-      else
-        return td->http->raiseHTTPError (204);
     }
   catch (exception & e)
     {
       td->connection->host->warningsLogWrite
         (_E ("HttpFile: cannot delete file %s"),
          td->filenamePath.c_str (), &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     };
 }
 
@@ -520,15 +520,9 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   }
   catch (exception & e)
     {
-      if (file)
-        {
-          file->close ();
-          delete file;
-        }
+      td->sentData += dataSent;
       chain.clearAllFilters ();
-      td->connection->host->warningsLogWrite (_E ("HttpFile: internal error"),
-                                              &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   /* For logging activity.  */
