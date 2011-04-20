@@ -18,9 +18,6 @@
 #include "myserver.h"
 #include <include/server/server.h>
 
-#undef open
-#undef close
-
 #include <cppunit/TextOutputter.h>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/XmlOutputter.h>

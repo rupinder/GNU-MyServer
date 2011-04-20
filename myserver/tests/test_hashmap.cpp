@@ -17,8 +17,6 @@
 
 #include "myserver.h"
 
-#undef remove
-
 #include <include/base/hash_map/hash_map.h>
 
 #include <cppunit/CompilerOutputter.h>
