@@ -216,7 +216,6 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
   u_long headerSize = 0;
   u_long tmpHeaderSize = 0;
   size_t nbw, nbr;
-  u_long sentData = 0;
   HttpThreadContext* td = ctx->td;
 
   checkDataChunks (td, &keepalive, &useChunks);
@@ -267,14 +266,10 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
     return HttpDataHandler::RET_OK;
 
   if (read - headerSize)
-    appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
-                             read - headerSize,
-                             &(td->outputData),
-                             chain,
-                             td->appendOutputs,
-                             useChunks);
-
-  sentData += read - headerSize;
+    td->sentData +=
+      appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
+                             read - headerSize, &(td->outputData), chain,
+                               td->appendOutputs, useChunks);
 
   if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
     {
@@ -284,24 +279,18 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                 td->auxiliaryBuffer->getRealLength (),
                                 0);
 
-          if (!nbr || (nbr == (size_t)-1))
+          if (!nbr || (nbr == (size_t) -1))
             break;
 
-          appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                   nbr,
-                                   &(td->outputData),
-                                   chain,
-                                   td->appendOutputs,
-                                   useChunks);
-
-          sentData += nbr;
+          td->sentData +=
+            appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
+                                     nbr, &(td->outputData), chain,
+                                     td->appendOutputs, useChunks);
         }
 
       if (!td->appendOutputs && useChunks)
         chain->getStream ()->write ("0\r\n\r\n", 5, &nbw);
     }
-  /* For logging activity.  */
-  td->sentData += sentData;
 
   return HttpDataHandler::RET_OK;
 }
