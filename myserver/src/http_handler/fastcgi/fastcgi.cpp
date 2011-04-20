@@ -620,7 +620,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   if (onlyHeader)
     return 1;
 
-  HttpDataHandler::appendDataToHTTPChannel (con->td,
+  size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                             con->td->buffer->getBuffer (),
                                             con->td->buffer->getLength (),
                                             &(con->td->outputData),
@@ -628,8 +628,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
                                             con->td->appendOutputs,
                                             con->useChunks);
 
-  con->td->sentData += con->td->buffer->getLength ();
-
+  con->td->sentData += nbw;
   return 0;
 }
 
@@ -712,14 +711,14 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
   /* Flush the buffer if remaining data is present.  */
   if (size - headerSize)
     {
-      HttpDataHandler::appendDataToHTTPChannel (con->td,
+      size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                                 con->td->buffer->getBuffer () + headerSize,
                                                 size - headerSize,
                                                 &(con->td->outputData),
                                                 chain,
                                                 con->td->appendOutputs,
                                                 con->useChunks);
-      con->td->sentData += size - headerSize;
+      con->td->sentData += nbw;
     }
 
   return 0;

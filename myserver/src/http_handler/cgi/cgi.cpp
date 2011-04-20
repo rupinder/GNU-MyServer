@@ -288,7 +288,6 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
                    Process &cgiProc, bool onlyHeader, bool nph)
 {
   size_t nbw = 0;
-  size_t nbw2 = 0;
   size_t nBytesRead = 0;
   u_long procStartTime;
   bool useChunks = false;
@@ -314,6 +313,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
     {
       FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       ff->chain (&chain, td->mime->filters, td->connection->socket, &nbw, 1);
+      td->sentData += nbw;
     }
 
   /* Send the rest of the data until we can read from the pipe.  */
@@ -343,23 +343,18 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
         break;
 
       if (nBytesRead)
-        HttpDataHandler::appendDataToHTTPChannel (td,
+      td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                   td->auxiliaryBuffer->getBuffer (),
                                                   nBytesRead,
                                                   &(td->outputData),
                                                   &chain,
                                                   td->appendOutputs,
                                                   useChunks);
-
-      nbw += nBytesRead;
     }
 
   /* Send the last null chunk if needed.  */
-  if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
+  if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw))
     return HttpDataHandler::RET_FAILURE;
-
-  /* Update the Content-length field for logging activity.  */
-  td->sentData += nbw;
 
   return HttpDataHandler::RET_OK;
 }
@@ -482,15 +477,13 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
   if (headerOffset - headerSize)
     {
       /* Flush the buffer.  Data from the header parsing can be present.  */
-      HttpDataHandler::appendDataToHTTPChannel (td,
+      td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                td->auxiliaryBuffer->getBuffer () + headerSize,
                                                     headerOffset - headerSize,
                                                     &(td->outputData),
                                                     &chain,
                                                     td->appendOutputs,
-                                                useChunks);
-
-      td->sentData += headerOffset - headerSize;
+                                                    useChunks);
     }
 
   return 0;
