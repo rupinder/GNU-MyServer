@@ -277,7 +277,6 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
   size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
   u_long bufferDataSize = 0;
-  u_long written = 0;
 
   /* Only the chunked transfer encoding is supported.  */
   if (serverTransferEncoding && serverTransferEncoding->compare ("chunked"))
@@ -314,12 +313,11 @@ int Proxy::readPayLoad (HttpThreadContext* td,
               if (!nbr)
                 break;
 
-              HttpDataHandler::appendDataToHTTPChannel (td,
+              td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                        td->buffer->getBuffer (),
                                                        nbr, &(td->outputData),
                                                        out, td->appendOutputs,
                                                        useChunks);
-              written += nbr;
             }
         }
     }
@@ -348,11 +346,9 @@ int Proxy::readPayLoad (HttpThreadContext* td,
           if (length)
             length -= nbr;
 
-          HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+          td->sentData += HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
                                                     nbr, &(td->outputData), out,
                                                     td->appendOutputs, useChunks);
-          written += nbr;
-
           if (timedOut || contentLength && length == 0)
             break;
         }
