@@ -442,7 +442,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
         memStream.refresh ();
         if (nbr)
-          HttpDataHandler::appendDataToHTTPChannel (td,
+          dataSent += HttpDataHandler::appendDataToHTTPChannel (td,
                                                     td->buffer->getBuffer (),
                                                     nbr, &(td->outputData),
                                                     &chain, td->appendOutputs,
