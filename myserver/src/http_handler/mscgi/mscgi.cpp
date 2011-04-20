@@ -141,10 +141,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
 
-      ostringstream tmp;
-      tmp << td->sentData;
-      td->response.contentLength.assign (tmp.str ());
-
       chain.clearAllFilters ();
 
     }
@@ -171,15 +167,14 @@ int MsCgi::write (const char* data, u_long len, MsCgiData* mcd)
   if (mcd->onlyHeader)
     return 0;
 
-  HttpDataHandler::appendDataToHTTPChannel (mcd->td,
-                                            (char*) data,
-                                            len,
-                                            &(mcd->td->outputData),
-                                            mcd->filtersChain,
-                                            mcd->td->appendOutputs,
-                                            mcd->useChunks);
-
-  mcd->td->sentData +=len;
+  mcd->td->sentData +=
+    HttpDataHandler::appendDataToHTTPChannel (mcd->td,
+                                              mcd->td->auxiliaryBuffer->getBuffer (),
+                                              mcd->td->auxiliaryBuffer->getLength (),
+                                              &(mcd->td->outputData),
+                                              mcd->filtersChain,
+                                              mcd->td->appendOutputs,
+                                              mcd->useChunks);
   return 0;
 }
 
