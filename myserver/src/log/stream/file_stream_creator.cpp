@@ -30,7 +30,7 @@ FileStreamCreator::create (FiltersFactory* ff, string location,
       size_t nbw;
       out->openFile (location.c_str (),
                      FileStream::defaultFileMask);
-      fc = ff->chain (filters, out, &nbw);
+      fc = ff->makeChain (filters, out, &nbw);
       if (fc)
         return new FileStream (ff, cycle, out, fc);
     }

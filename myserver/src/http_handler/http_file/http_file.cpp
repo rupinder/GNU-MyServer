@@ -326,8 +326,8 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
           Server::getInstance ()->getFiltersFactory ()->chain (&chain,
                                                                td->mime->filters,
                                                                &memStream,
-                                                               &nbw, 0,
-                                                               e ? &e->value : NULL);
+                                                               &nbw, 0, false,
+                                                               e ? e->value : "");
       }
 
     useModifiers = chain.hasModifiersFilters ();

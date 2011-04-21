@@ -46,10 +46,11 @@ public:
   int insert (const char*, FILTERCREATE ptr);
   int insert (const char*, FiltersSource* ptr);
   Filter *getFilter (const char*);
-  FiltersChain* chain (list<string> &l, Stream* out, size_t *nbw,
-                       int onlyNotModifiers = 0);
+  FiltersChain* makeChain (list<string> &l, Stream* out, size_t *nbw,
+                           int onlyNotModifiers = 0);
   int chain (FiltersChain*, list<string> &l, Stream* out, size_t *nbw,
-             int onlyNotModifiers = 0, string *accepted = NULL);
+             bool onlyNotModifiers = false, bool acceptAll = true,
+             const string &accepted = "");
 
   FiltersFactory ();
   ~FiltersFactory ();
