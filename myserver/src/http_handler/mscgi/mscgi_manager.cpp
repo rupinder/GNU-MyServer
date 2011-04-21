@@ -39,7 +39,7 @@ int MscgiManager::write (const char* str)
 /*!
   Write binary to the stdout.
  */
-int MscgiManager::write (const void* data, int len)
+int MscgiManager::write (const void* data, size_t len)
 {
   return cgidata->mscgi->write ((const char*) data, len, cgidata);
 }

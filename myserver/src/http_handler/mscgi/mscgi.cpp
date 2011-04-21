@@ -70,7 +70,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
   data.server = Server::getInstance ();
   data.mscgi = this;
   data.useChunks = false;
-  data.onlyHeader = onlyHeader ? true : false;
+  data.onlyHeader = onlyHeader;
   data.error = false;
   data.filtersChain = &chain;
   data.headerSent = false;
@@ -156,7 +156,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 /*!
   Send a chunk of data to the client.
  */
-int MsCgi::write (const char* data, u_long len, MsCgiData* mcd)
+int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
 {
   if (mcd->error)
     return 1;
@@ -169,8 +169,7 @@ int MsCgi::write (const char* data, u_long len, MsCgiData* mcd)
 
   mcd->td->sentData +=
     HttpDataHandler::appendDataToHTTPChannel (mcd->td,
-                                              mcd->td->auxiliaryBuffer->getBuffer (),
-                                              mcd->td->auxiliaryBuffer->getLength (),
+                                              (char *) data, len,
                                               &(mcd->td->outputData),
                                               mcd->filtersChain,
                                               mcd->td->appendOutputs,

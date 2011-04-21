@@ -60,7 +60,7 @@ public:
                     const char* cmdLine = 0, bool execute = false,
                     bool onlyHeader = false);
 
-  int write (const char*, u_long, MsCgiData*);
+  int write (const char*, size_t, MsCgiData*);
   int sendHeader (MsCgiData*);
 
 private:
