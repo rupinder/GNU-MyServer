@@ -135,9 +135,6 @@ int FiltersFactory::chain (FiltersChain* c, list<string> &l, Stream* out,
     {
       size_t tmp;
 
-      if (accepted && accepted->find (*i) == string::npos)
-        continue;
-
       Filter *n = getFilter ((*i).c_str ());
       if (!n)
         {
@@ -145,11 +142,17 @@ int FiltersFactory::chain (FiltersChain* c, list<string> &l, Stream* out,
           return 1;
         }
 
-      if (onlyNotModifiers && n->modifyData ())
+      if (n->modifyData ())
         {
-          delete n;
-          c->clearAllFilters ();
-          return 1;
+          if ((! accepted) || accepted->find (*i) == string::npos)
+            continue;
+
+          if (onlyNotModifiers)
+            {
+              delete n;
+              c->clearAllFilters ();
+              return 1;
+            }
         }
 
       c->addFilter (n, &tmp);
