@@ -406,7 +406,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       Check if there are all the conditions to use a direct copy from the
       file to the socket.
     */
-    if (!useChunks && chain.isEmpty () && !td->appendOutputs
+    if (!useChunks && chain.isEmpty ()
         && !(td->http->getProtocolOptions () & Protocol::SSL))
       {
         size_t nbw = 0;
@@ -425,10 +425,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     file->seek (firstByte);
 
-    if (td->appendOutputs)
-      chain.setStream (&(td->outputData));
-    else
-      chain.setStream (td->connection->socket);
+    chain.setStream (td->connection->socket);
 
     /*
       Flush initial data.  This is data that filters could have added
@@ -444,9 +441,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         if (nbr)
           dataSent += HttpDataHandler::appendDataToHTTPChannel (td,
                                                     td->buffer->getBuffer (),
-                                                    nbr, &(td->outputData),
-                                                    &chain, td->appendOutputs,
-                                                    useChunks);
+                                                    nbr, &chain, useChunks);
       } /* memStream.availableToRead ().  */
 
     /* Flush the rest of the file.  */
@@ -474,8 +469,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             bytesToSend -= nbr;
 
             dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                 nbr, &(td->outputData), &chain,
-                                                 td->appendOutputs, useChunks,
+                                                 nbr, &chain, useChunks,
                                                  td->buffer->getRealLength (),
                                                  &memStream);
           }
@@ -506,9 +500,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
                                 td->buffer->getRealLength (), &nbr);
 
                 dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, &(td->outputData),
-                                                     &chain, td->appendOutputs,
-                                                     useChunks);
+                                                     nbr, &chain, useChunks);
                 break;
               }
           }

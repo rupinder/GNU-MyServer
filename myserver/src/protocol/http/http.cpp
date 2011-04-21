@@ -849,7 +849,6 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
       td->id = id;
       td->lastError = 0;
       td->http = this;
-      td->appendOutputs = false;
       td->onlyHeader = false;
       td->filenamePath.assign ("");
       td->mime = NULL;
@@ -1159,7 +1158,6 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
       try
         {
           td->inputData.close ();
-          td->outputData.close ();
         }
       catch (GenericFileException & e)
         {
@@ -1183,8 +1181,6 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
   catch (...)
     {
       td->inputData.close ();
-      td->outputData.close ();
-
       td->connection->host->warningsLogWrite (_("HTTP: internal error"));
       raiseHTTPError (500);
       logHTTPaccess ();
@@ -1475,15 +1471,12 @@ Internal Server Error\n\
   *td->auxiliaryBuffer << time;
   *td->auxiliaryBuffer << "\r\n\r\n";
 
-  if (! td->appendOutputs)
-    {
-      td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
-                                    td->auxiliaryBuffer->getLength (),
-                                    0);
+  td->connection->socket->send (td->auxiliaryBuffer->getBuffer (),
+                                td->auxiliaryBuffer->getLength (),
+                                0);
 
-      if (! td->onlyHeader)
-        td->connection->socket->send (hardHTML, strlen (hardHTML), 0);
-    }
+  if (! td->onlyHeader)
+    td->connection->socket->send (hardHTML, strlen (hardHTML), 0);
 
   return HttpDataHandler::RET_FAILURE;
 }

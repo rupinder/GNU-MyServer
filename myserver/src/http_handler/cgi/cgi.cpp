@@ -346,9 +346,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                   td->auxiliaryBuffer->getBuffer (),
                                                   nBytesRead,
-                                                  &(td->outputData),
                                                   &chain,
-                                                  td->appendOutputs,
                                                   useChunks);
     }
 
@@ -453,11 +451,6 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
         HttpHeaders::buildHTTPResponseHeaderStruct (td->auxiliaryBuffer->getBuffer (),
                                                     &td->response,
                                                     &(td->nBytesToRead));
-      /*
-       *If we have not to append the output send data
-       *directly to the client.
-       */
-      if (!td->appendOutputs)
         {
           string* location = td->response.getValue ("Location", NULL);
 
@@ -480,9 +473,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                td->auxiliaryBuffer->getBuffer () + headerSize,
                                                     headerOffset - headerSize,
-                                                    &(td->outputData),
                                                     &chain,
-                                                    td->appendOutputs,
                                                     useChunks);
     }
 

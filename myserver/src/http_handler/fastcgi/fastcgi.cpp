@@ -623,10 +623,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                             con->td->buffer->getBuffer (),
                                             con->td->buffer->getLength (),
-                                            &(con->td->outputData),
-                                            chain,
-                                            con->td->appendOutputs,
-                                            con->useChunks);
+                                            chain, con->useChunks);
 
   con->td->sentData += nbw;
   return 0;
@@ -689,7 +686,6 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
         }
     }
 
-  if (!con->td->appendOutputs)
     {
       string *location = con->td->response.getValue ("Location", NULL);
       if (location)
@@ -714,9 +710,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
       size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                                 con->td->buffer->getBuffer () + headerSize,
                                                 size - headerSize,
-                                                &(con->td->outputData),
                                                 chain,
-                                                con->td->appendOutputs,
                                                 con->useChunks);
       con->td->sentData += nbw;
     }

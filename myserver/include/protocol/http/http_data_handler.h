@@ -55,9 +55,7 @@ public:
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          char *buffer,
                                          size_t size,
-                                         File *appendFile,
                                          FiltersChain *chain,
-                                         bool append,
                                          bool useChunks,
                                          size_t realBufferSize,
                                          MemoryStream *tmpStream);
@@ -65,9 +63,7 @@ public:
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          char *buffer,
                                          size_t size,
-                                         File *appendFile,
                                          FiltersChain* chain,
-                                         bool append,
                                          bool useChunks);
 
 };

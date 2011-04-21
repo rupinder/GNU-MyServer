@@ -135,7 +135,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
           return td->http->raiseHTTPError (data.errorPage);
         }
 
-      if (!td->appendOutputs && data.useChunks && !data.error)
+      if (data.useChunks && !data.error)
         chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
 
       if (!data.error)
@@ -170,9 +170,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
   mcd->td->sentData +=
     HttpDataHandler::appendDataToHTTPChannel (mcd->td,
                                               (char *) data, len,
-                                              &(mcd->td->outputData),
                                               mcd->filtersChain,
-                                              mcd->td->appendOutputs,
                                               mcd->useChunks);
   return 0;
 }

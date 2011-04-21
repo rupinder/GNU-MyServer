@@ -105,11 +105,11 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       chain.setStream (td->connection->socket);
       if (td->mime)
         {
-          size_t nbw2;
           Server::getInstance ()->getFiltersFactory ()->chain (&chain,
                                                           td->mime->filters,
                                                         td->connection->socket,
-                                                               &nbw2, 1);
+                                                               &nbw, 1);
+          td->sentData += nbw;
         }
 
       /* The WinCGI protocol uses a .ini file to send data to the new process.  */
@@ -300,41 +300,22 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
        */
       stream << OutFileHandle.getFileSize () - headerSize;
       td->response.contentLength.assign (stream.str ());
-      if (!td->appendOutputs)
+      HttpHeaders::sendHeader (td->response, *chain.getStream (),
+                               *td->buffer, td);
+
+      if (onlyHeader)
         {
-          HttpHeaders::sendHeader (td->response, *chain.getStream (),
-                                   *td->buffer, td);
-
-          if (onlyHeader)
-            {
-              OutFileHandle.close ();
-              FilesUtility::deleteFile (outFilePath);
-              FilesUtility::deleteFile (dataFilePath);
-              chain.clearAllFilters ();
-              return HttpDataHandler::RET_OK;
-            }
-
-          size_t written;
-          chain.write ((char*)(buffer + headerSize), nBytesRead - headerSize,
-                       &written);
-          nbw += written;
+          OutFileHandle.close ();
+          FilesUtility::deleteFile (outFilePath);
+          FilesUtility::deleteFile (dataFilePath);
+          chain.clearAllFilters ();
+          return HttpDataHandler::RET_OK;
         }
-      else
-        {
-          size_t nbw2;
-          HttpHeaders::buildHTTPResponseHeader (td->buffer->getBuffer (),
-                                                &td->response);
-          if (onlyHeader)
-            {
-              chain.clearAllFilters ();
-              return HttpDataHandler::RET_OK;
-            }
 
-          td->outputData.writeToFile ((char*) (buffer + headerSize),
-                                      nBytesRead - headerSize,
-                                      &nbw2);
-          nbw += nbw2;
-        }
+      size_t written;
+      chain.write ((char*)(buffer + headerSize), nBytesRead - headerSize,
+                   &written);
+      td->dataSent += written;
 
       if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
         {
@@ -346,17 +327,11 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
               if (! nBytesRead)
                 break;
 
-              if (td->appendOutputs)
-                td->outputData.writeToFile (buffer, nBytesRead, &nbw);
-              else
-                {
-                  size_t nbw2;
-                  chain.write ((char*) buffer, nBytesRead, &nbw2);
-                }
+              chain.write ((char*) buffer, nBytesRead, &nbw);
+              td->sentData += nbw;
             }
           while (nBytesRead);
         }
-      td->sentData += nbw;
 
       chain.clearAllFilters ();
       OutFileHandle.close ();

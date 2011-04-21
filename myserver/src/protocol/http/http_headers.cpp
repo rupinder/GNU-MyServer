@@ -901,7 +901,7 @@ int HttpHeaders::sendHeader (HttpResponseHeader &response, Stream &stream,
                              MemBuf &memBuf, HttpThreadContext *ctx)
 {
   int ret = 0;
-  if (ctx == NULL || (!ctx->appendOutputs && !ctx->headerSent))
+  if (ctx == NULL || (!ctx->headerSent))
     {
       size_t nbw;
       u_long len = buildHTTPResponseHeader (memBuf.getBuffer (), &response);

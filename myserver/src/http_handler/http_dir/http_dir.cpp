@@ -379,7 +379,6 @@ int HttpDir::send (HttpThreadContext* td,
                                                         "is not valid"), ignPattern);
 
               fd.findclose ();
-              td->outputData.close ();
               chain.clearAllFilters ();
               return td->http->raiseHTTPError (500);
             }
@@ -439,8 +438,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                            td->auxiliaryBuffer->getLength (),
-                                           &(td->outputData), &chain,
-                                           td->appendOutputs, useChunks);
+                                           &chain, useChunks);
 
       filename = directory;
       td->auxiliaryBuffer->setLength (0);
@@ -455,8 +453,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                            td->auxiliaryBuffer->getLength (),
-                                           &(td->outputData), &chain,
-                                           td->appendOutputs, useChunks);
+                                           &chain, useChunks);
 
       fd.findfirst (filename.c_str ());
 
@@ -471,8 +468,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                td->auxiliaryBuffer->getLength (),
-                                               &(td->outputData), &chain,
-                                               td->appendOutputs, useChunks);
+                                               &chain, useChunks);
       td->auxiliaryBuffer->setLength (0);
 
       if (FilesUtility::getPathRecursionLevel (td->request.uri) >= 1)
@@ -508,8 +504,7 @@ int HttpDir::send (HttpThreadContext* td,
 
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                    td->auxiliaryBuffer->getLength (),
-                                                   &(td->outputData), &chain,
-                                                   td->appendOutputs, useChunks);
+                                                   &chain, useChunks);
         }
 
       /* Put all files in a vector.  */
@@ -570,8 +565,7 @@ int HttpDir::send (HttpThreadContext* td,
           generateElement (*td->auxiliaryBuffer, file, linkPrefix, formatString);
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                    td->auxiliaryBuffer->getLength (),
-                                                   &(td->outputData), &chain,
-                                                   td->appendOutputs, useChunks);
+                                                   &chain, useChunks);
         }
 
       td->auxiliaryBuffer->setLength (0);
@@ -595,8 +589,7 @@ int HttpDir::send (HttpThreadContext* td,
       *td->auxiliaryBuffer << "</address>\r\n</body>\r\n</html>\r\n";
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                td->auxiliaryBuffer->getLength (),
-                                               &(td->outputData), &chain,
-                                               td->appendOutputs, useChunks);
+                                               &chain, useChunks);
 
       *td->auxiliaryBuffer << end_str;
       /* Changes the \ character in the / character.  */
@@ -605,7 +598,7 @@ int HttpDir::send (HttpThreadContext* td,
         if (*bufferloop == '\\')
           *bufferloop = '/';
 
-      if (!td->appendOutputs && useChunks)
+      if (useChunks)
         chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
     }
   catch (exception & e)

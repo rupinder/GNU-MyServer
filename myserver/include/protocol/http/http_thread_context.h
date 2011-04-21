@@ -50,9 +50,7 @@ class MimeRecord;
  */
 struct HttpThreadContext
 {
-  bool appendOutputs;
-
-  /*! Set by raiseHTTPError.  */
+  /*! Http::raiseHTTPError sets this.  */
   int lastError;
 
   /*! Is the client asking only for the header?  */
@@ -83,7 +81,6 @@ struct HttpThreadContext
   HashMap<string,string*> other;
   char identity[32];
   File inputData;
-  File outputData;
   int authScheme;
   Http *http;
   MimeRecord *mime;

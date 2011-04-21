@@ -66,9 +66,7 @@ int HttpDataHandler::unLoad ()
   \param td The HTTP thread context.
   \param buffer Data to send.
   \param size Size of the buffer.
-  \param appendFile The file where append if in append mode.
   \param chain Where send data if not append.
-  \param append Append to the file?
   \param useChunks Can we use HTTP chunks to send data?
   \param realBufferSize The real dimension of the buffer that can be
   used by this method.
@@ -78,9 +76,7 @@ int HttpDataHandler::unLoad ()
 size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                                  char *buffer,
                                                  size_t size,
-                                                 File *appendFile,
                                                  FiltersChain *chain,
-                                                 bool append,
                                                  bool useChunks,
                                                  size_t realBufferSize,
                                                  MemoryStream *tmpStream)
@@ -89,8 +85,7 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   Stream *oldStream = chain->getStream ();
 
   if (!chain->hasModifiersFilters ())
-    return appendDataToHTTPChannel (td, buffer, size, appendFile, chain, append,
-                                    useChunks);
+    return appendDataToHTTPChannel (td, buffer, size, chain, useChunks);
 
   /*
     This function can't append directly to the chain because we can't
@@ -107,8 +102,7 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
 
   chain->setStream (oldStream);
 
-  return appendDataToHTTPChannel (td, buffer, nbr, appendFile, chain, append,
-                                  useChunks);
+  return appendDataToHTTPChannel (td, buffer, nbr, chain, useChunks);
 }
 
 /*!
@@ -117,30 +111,21 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   \param td The HTTP thread context.
   \param buffer Data to send.
   \param size Size of the buffer.
-  \param appendFile The file where append if in append mode.
   \param chain Where send data if not append.
-  \param append Append to the file?
   \param useChunks Can we use HTTP chunks to send data?
  */
 size_t
-HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext* td,
+HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                           char *buffer,
                                           size_t size,
-                                          File *appendFile,
                                           FiltersChain *chain,
-                                          bool append, bool useChunks)
+                                          bool useChunks)
 {
   size_t tmp, nbw = 0;
   if (chain->hasModifiersFilters ())
     {
       td->connection->host->warningsLogWrite (_("Http: internal error"));
       return 0;
-    }
-
-  if (append)
-    {
-      appendFile->writeToFile (buffer, size, &nbw);
-      return nbw;
     }
 
   if (useChunks)
