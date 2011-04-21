@@ -213,7 +213,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   size_t nbr;
   time_t lastMT;
   string tmpTime;
-  u_long dataSent = 0;
 
   try
     {
@@ -322,14 +321,13 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     if (td->mime)
       {
         HttpRequestHeader::Entry* e = td->request.other.get ("accept-encoding");
+        memStream.refresh ();
         if (td->mime)
           Server::getInstance ()->getFiltersFactory ()->chain (&chain,
                                                                td->mime->filters,
                                                                &memStream,
                                                                &nbw, 0,
                                                                e ? &e->value : NULL);
-        memStream.refresh ();
-        dataSent += nbw;
       }
 
     useModifiers = chain.hasModifiersFilters ();
@@ -439,9 +437,12 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
         memStream.refresh ();
         if (nbr)
-          dataSent += HttpDataHandler::appendDataToHTTPChannel (td,
+          {
+            FiltersChain directChain (chain.getStream ());
+            td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                     td->buffer->getBuffer (),
-                                                    nbr, &chain, useChunks);
+                                                    nbr, &directChain, useChunks);
+          }
       } /* memStream.availableToRead ().  */
 
     /* Flush the rest of the file.  */
@@ -468,10 +469,10 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
             bytesToSend -= nbr;
 
-            dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                 nbr, &chain, useChunks,
-                                                 td->buffer->getRealLength (),
-                                                 &memStream);
+            td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                     nbr, &chain, useChunks,
+                                                     td->buffer->getRealLength (),
+                                                     &memStream);
           }
         else /* if (bytesToSend) */
           {
@@ -479,7 +480,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             if (!useChunks)
               {
                 chain.flush (&nbw);
-                dataSent += nbw;
+                td->sentData += nbw;
                 break;
               }
             else
@@ -491,16 +492,17 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
                   write there the HTTP data chunk.
                 */
                 Stream* tmpStream = chain.getStream ();
-                chain.setStream (&memStream);
+                FiltersChain directChain (tmpStream);
                 memStream.refresh ();
+                chain.setStream (&memStream);
                 chain.flush (&nbw);
-
                 chain.setStream (tmpStream);
                 memStream.read (td->buffer->getBuffer (),
                                 td->buffer->getRealLength (), &nbr);
 
-                dataSent += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, &chain, useChunks);
+                td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                         nbr, &directChain, useChunks);
+                chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
                 break;
               }
           }
@@ -512,13 +514,10 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   }
   catch (exception & e)
     {
-      td->sentData += dataSent;
       chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
-  /* For logging activity.  */
-  td->sentData += dataSent;
   chain.clearAllFilters ();
 
   return HttpDataHandler::RET_OK;

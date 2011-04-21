@@ -74,17 +74,18 @@ int HttpDataHandler::unLoad ()
   internally by the function.
  */
 size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
-                                                 char *buffer,
+                                                 const char *buffer,
                                                  size_t size,
                                                  FiltersChain *chain,
                                                  bool useChunks,
                                                  size_t realBufferSize,
                                                  MemoryStream *tmpStream)
 {
-  size_t nbr, nbw;
+  char tmpBuf[BUFSIZ];
+  size_t nbr, nbw, written = 0, totalNbw = 0;
   Stream *oldStream = chain->getStream ();
 
-  if (!chain->hasModifiersFilters ())
+  if (! chain->hasModifiersFilters () || size == 0)
     return appendDataToHTTPChannel (td, buffer, size, chain, useChunks);
 
   /*
@@ -94,15 +95,34 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
     chunk content, finally we read from it and send directly to the
     original stream.
    */
-  chain->setStream (tmpStream);
+  try
+    {
+      FiltersChain directStream (oldStream);
+      do
+        {
+          if (size - written)
+            {
+              chain->setStream (tmpStream);
+              chain->write (buffer + written, size - written, &nbw);
+              chain->setStream (oldStream);
+              written += size;
+            }
 
-  chain->write (buffer, size, &nbw);
+          tmpStream->read (tmpBuf, BUFSIZ, &nbr);
+          if (nbr)
+            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, &directStream,
+                                                 useChunks);
+        }
+      while (size - written);
 
-  tmpStream->read (buffer, realBufferSize, &nbr);
+    }
+  catch (...)
+    {
+      chain->setStream (oldStream);
+      throw;
+    }
 
-  chain->setStream (oldStream);
-
-  return appendDataToHTTPChannel (td, buffer, nbr, chain, useChunks);
+  return totalNbw;
 }
 
 /*!
@@ -116,26 +136,17 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
  */
 size_t
 HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
-                                          char *buffer,
+                                          const char *buffer,
                                           size_t size,
                                           FiltersChain *chain,
                                           bool useChunks)
 {
   size_t tmp, nbw = 0;
-  if (chain->hasModifiersFilters ())
-    {
-      td->connection->host->warningsLogWrite (_("Http: internal error"));
-      return 0;
-    }
 
   if (useChunks)
     {
       ostringstream chunkHeader;
-      size_t flushNbw = 0;
       chunkHeader << hex << size << "\r\n";
-
-      chain->flush (&flushNbw);
-
       chain->getStream ()->write (chunkHeader.str ().c_str (),
                                   chunkHeader.str ().length (), &tmp);
     }

@@ -44,14 +44,13 @@ int FiltersChain::read (char* buffer, size_t len, size_t* nbr)
 */
 void FiltersChain::setStream (Stream* s)
 {
-  list<Filter*>::iterator i=filters.begin ();
+  list<Filter*>::iterator i = filters.begin ();
 
-  for ( ; i!=filters.end (); i++ )
-    if ((*i)->getParent ()==stream)
-      {
-        (*i)->setParent (s);
-      }
-  stream=s;
+  for (; i != filters.end (); i++ )
+    if ((*i)->getParent () == stream)
+      (*i)->setParent (s);
+
+  stream = s;
 }
 
 /*!
@@ -82,6 +81,14 @@ FiltersChain::FiltersChain ()
 {
   acceptDuplicates = 1;
   stream = NULL;
+  firstFilter = NULL;
+}
+
+
+FiltersChain::FiltersChain (Stream *stream)
+{
+  acceptDuplicates = 1;
+  this->stream = stream;
   firstFilter = NULL;
 }
 

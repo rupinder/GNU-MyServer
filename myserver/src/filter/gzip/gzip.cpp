@@ -312,17 +312,17 @@ int Gzip::write (const char* buffer, size_t len, size_t *nbw)
 
   while (len)
     {
-      size_t nbw_parent;
-      size_t  size = std::min (len, (size_t) 512);
+      size_t nbwParent;
+      size_t size = std::min (len, (size_t) 512);
       u_long ret = compress (buffer, size, tmpBuffer, 1024);
 
       if (ret)
-        parent->write (tmpBuffer, ret, &nbw_parent);
+        parent->write (tmpBuffer, ret, &nbwParent);
 
       written += ret;
       buffer += size;
       len -= size;
-      *nbw += nbw_parent;
+      *nbw += nbwParent;
     }
   return 0;
 }

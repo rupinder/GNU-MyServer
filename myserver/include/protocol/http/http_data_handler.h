@@ -53,7 +53,7 @@ public:
   static void checkDataChunks (HttpThreadContext *, bool *, bool *);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
-                                         char *buffer,
+                                         const char *buffer,
                                          size_t size,
                                          FiltersChain *chain,
                                          bool useChunks,
@@ -61,7 +61,7 @@ public:
                                          MemoryStream *tmpStream);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
-                                         char *buffer,
+                                         const char *buffer,
                                          size_t size,
                                          FiltersChain* chain,
                                          bool useChunks);
