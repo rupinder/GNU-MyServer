@@ -44,7 +44,7 @@
 
   \return The number of bytes written to STR.
  */
-u_long HttpHeaders::buildHTTPResponseHeader (char *str,
+size_t HttpHeaders::buildHTTPResponseHeader (char *str,
                                              HttpResponseHeader* response)
 {
   /*
@@ -116,7 +116,7 @@ u_long HttpHeaders::buildHTTPResponseHeader (char *str,
 
   \return The number of bytes written to STR.
  */
-u_long HttpHeaders::buildHTTPRequestHeader (char * str,
+size_t HttpHeaders::buildHTTPRequestHeader (char * str,
                                             HttpRequestHeader* request)
 {
   char *pos = str;
@@ -259,12 +259,12 @@ void HttpHeaders::resetHTTPResponse (HttpResponseHeader *response)
   \param nLinesptr is a value of the lines number in the HEADER.
   \param ncharsptr is a value of the characters number in the HEADER.
  */
-int HttpHeaders::validHTTPResponse (const char *res, u_long *nLinesptr,
-                                    u_long *ncharsptr)
+int HttpHeaders::validHTTPResponse (const char *res, size_t *nLinesptr,
+                                    size_t *ncharsptr)
 {
-  u_long i;
-  u_long nLinechars = 0;
-  u_long nLines = 0;
+  size_t i;
+  size_t nLinechars = 0;
+  size_t nLines = 0;
 
   if (res == 0)
     return 0;
@@ -312,13 +312,13 @@ int HttpHeaders::validHTTPResponse (const char *res, u_long *nLinesptr,
   Any other returned value is the HTTP error.
   \param input buffer with the HTTP header.
   \param inputSize Size of the buffer
-  \param nHeaderChars Real size of the header.
+  \param headerSize Real size of the header.
   \param request HTTP request structure to fullfill with data.
   \param connection The current connection.
 */
 int HttpHeaders::buildHTTPRequestHeaderStruct (const char *input,
-                                               u_long inputSize,
-                                               u_long *nHeaderChars,
+                                               size_t inputSize,
+                                               size_t *headerSize,
                                                HttpRequestHeader *request,
                                                Connection *connection)
 {
@@ -333,9 +333,9 @@ int HttpHeaders::buildHTTPRequestHeaderStruct (const char *input,
     control if this is a regular request.
     The HTTP header ends with a \r\n\r\n sequence.
    */
-  u_long i = 0,j = 0;
+  size_t i = 0,j = 0;
   int max = 0;
-  u_long nLines, maxTotchars;
+  size_t nLines, maxTotchars;
   int validRequest;
   const int commandSize = 96;
   const int maxUri = HTTP_REQUEST_URI_DIM + 200 ;
@@ -404,7 +404,7 @@ int HttpHeaders::buildHTTPRequestHeaderStruct (const char *input,
       if (nLineControlled == 1)
         {
           int containOpts = 0;
-          u_long lenToken = tokenOff;
+          size_t lenToken = tokenOff;
           /*
             The first line has the form:
             GET /index.html HTTP/1.1
@@ -604,9 +604,9 @@ int HttpHeaders::buildHTTPRequestHeaderStruct (const char *input,
       token += tokenOff + 2;
       tokenOff = getCharInString (token, ":", maxTotchars);
     }
-  while (((u_long) (token - input) < maxTotchars) && token[0] != '\r');
+  while (((size_t) (token - input) < maxTotchars) && token[0] != '\r');
 
-  *nHeaderChars = maxTotchars;
+  *headerSize = maxTotchars;
   return 200;
 }
 
@@ -719,7 +719,7 @@ int HttpHeaders::readReqAuthLine (HttpRequestHeader *request,
 
   if (! request->auth.compare ("Basic"))
     {
-      u_long i;
+      size_t i;
       const char *base64 = &token[6];
       int len = getEndLine (base64, 64);
       const char *tmp = base64 + len - 1;
@@ -904,7 +904,7 @@ int HttpHeaders::sendHeader (HttpResponseHeader &response, Stream &stream,
   if (ctx == NULL || (!ctx->headerSent))
     {
       size_t nbw;
-      u_long len = buildHTTPResponseHeader (memBuf.getBuffer (), &response);
+      size_t len = buildHTTPResponseHeader (memBuf.getBuffer (), &response);
       ret = stream.write (memBuf.getBuffer (), len, &nbw);
 
       if (ctx)
@@ -926,7 +926,7 @@ int HttpHeaders::sendHeader (HttpResponseHeader &response, Stream &stream,
 */
 int HttpHeaders::buildHTTPResponseHeaderStruct (const char *input,
                                                 HttpResponseHeader *response,
-                                                u_long *nbtr)
+                                                size_t *nbtr)
 {
   /*
     Brief description.
@@ -940,8 +940,8 @@ int HttpHeaders::buildHTTPResponseHeaderStruct (const char *input,
     control if this is a regular response.
    */
   char *newInput;
-  u_long nLines,maxTotchars;
-  u_long validResponse;
+  size_t nLines,maxTotchars;
+  size_t validResponse;
   const char cmdSeps[]   = ": ,\t\n\r\0";
 
   int containStatusLine=0;
@@ -1084,7 +1084,7 @@ int HttpHeaders::buildHTTPResponseHeaderStruct (const char *input,
       }
     token = strtok (NULL, cmdSeps);
   }
-  while (token && ((u_long)(token - input) < maxTotchars));
+  while (token && ((size_t)(token - input) < maxTotchars));
 
   *nbtr = maxTotchars;
   delete [] input;
@@ -1101,13 +1101,13 @@ int HttpHeaders::buildHTTPResponseHeaderStruct (const char *input,
   \param nLinesptr Lines in the header.
   \param ncharsptr Characters in the header.
  */
-int HttpHeaders::validHTTPRequest (const char *req, u_long size,
-                                  u_long* nLinesptr, u_long* ncharsptr)
+int HttpHeaders::validHTTPRequest (const char *req, size_t size,
+                                  size_t* nLinesptr, size_t* ncharsptr)
 {
-  u_long i = 0;
-  u_long nLinechars = 0;
+  size_t i = 0;
+  size_t nLinechars = 0;
   nLinechars = 0;
-  u_long nLines = 0;
+  size_t nLines = 0;
 
   if (req == 0)
     return 400;

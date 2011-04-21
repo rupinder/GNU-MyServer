@@ -162,8 +162,8 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
                           FiltersChain &out, bool onlyHeader, bool *kaClient)
 {
-  u_long read = 0;
-  u_long headerLength;
+  size_t read = 0;
+  size_t headerLength;
   int ret;
   size_t nbw;
   bool useChunks = false;
@@ -276,7 +276,6 @@ int Proxy::readPayLoad (HttpThreadContext* td,
   size_t contentLength = 0;
 
   size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
-  u_long bufferDataSize = 0;
 
   /* Only the chunked transfer encoding is supported.  */
   if (serverTransferEncoding && serverTransferEncoding->compare ("chunked"))
@@ -290,10 +289,6 @@ int Proxy::readPayLoad (HttpThreadContext* td,
     }
 
   length = contentLength;
-
-  bufferDataSize = (td->nBytesToRead < td->buffer->getRealLength () - 1
-                    ? td->nBytesToRead
-                    : td->buffer->getRealLength () - 1 ) - td->nHeaderChars;
 
   /* If it is specified a transfer encoding read data using it.  */
   if (serverTransferEncoding)

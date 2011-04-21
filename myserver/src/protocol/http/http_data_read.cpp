@@ -265,7 +265,7 @@ int HttpDataRead::readPostData (HttpThreadContext* td, int* httpRetCode)
   else if (contentType->value.length () == 0)
     contentType->value.assign ("application/x-www-form-urlencoded");
 
-  td->request.uriOptsPtr = &(td->buffer->getBuffer ())[td->nHeaderChars];
+  td->request.uriOptsPtr = &(td->buffer->getBuffer ())[td->headerSize];
   td->buffer->getBuffer ()[td->nBytesToRead < td->buffer->getRealLength () - 1
                            ? td->nBytesToRead : td->buffer->getRealLength ()-1] = '\0';
 
@@ -314,7 +314,7 @@ int HttpDataRead::readPostData (HttpThreadContext* td, int* httpRetCode)
 
   bufferDataSize = (td->nBytesToRead < td->buffer->getRealLength () - 1
                     ? td->nBytesToRead
-                    : td->buffer->getRealLength () - 1 ) - td->nHeaderChars;
+                    : td->buffer->getRealLength () - 1 ) - td->headerSize;
 
   /* If it is specified a transfer encoding read data using it.  */
   if (encoding)

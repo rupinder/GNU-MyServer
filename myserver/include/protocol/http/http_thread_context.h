@@ -59,13 +59,14 @@ struct HttpThreadContext
   /*! Was the HTTP header already flushed to the client?  */
   bool headerSent;
 
+  /*! Size of the request header in `buffer'. */
+  size_t headerSize;
+
   ConnectionPtr connection;
   MemBuf *buffer;
   MemBuf *auxiliaryBuffer;
-  u_long buffersize;
   u_long id;
-  u_long nBytesToRead;
-  u_long nHeaderChars;
+  size_t nBytesToRead;
   HttpResponseHeader response;
   HttpRequestHeader request;
   string filenamePath;

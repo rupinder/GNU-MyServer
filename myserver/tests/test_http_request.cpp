@@ -63,7 +63,7 @@ public:
   {
     HttpRequestHeader header;
     Connection connection;
-    u_long requestLength;
+    size_t requestLength;
     const char * requestStr;
     int ret;
 #define BUILD_KEEPALIVE_REQ(X) "GET / HTTP/1.1\r\n" \
@@ -108,8 +108,8 @@ public:
     HttpRequestHeader header;
     Connection connection;
     const char * requestStr = "GET /resource?args HTTP/1.1\r\nHost: localhost\r\n\r\n";
-    u_long  bufferLength = strlen (requestStr);
-    u_long requestLength;
+    size_t  bufferLength = strlen (requestStr);
+    size_t requestLength;
     int ret = HttpHeaders::buildHTTPRequestHeaderStruct (requestStr,
                                                         bufferLength,
                                                         &requestLength,
@@ -132,8 +132,8 @@ public:
     HttpRequestHeader header;
     Connection connection;
     const char * requestStr;
-    u_long  bufferLength;
-    u_long requestLength;
+    size_t  bufferLength;
+    size_t requestLength;
     int ret;
 
     requestStr = "GET /resource HTTP/1.1\r\nHost: localhost\r\nRange: bytes=10-20\r\n\r\n";
@@ -172,8 +172,8 @@ public:
   {
     const char *request = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
     int ret;
-    u_long nLines;
-    u_long nChars;
+    size_t nLines;
+    size_t nChars;
     ret = HttpHeaders::validHTTPRequest (request,
                                         strlen (request),
                                         &nLines,
@@ -186,8 +186,8 @@ public:
   {
     const char *incompleteRequest = "GET / HTTP/1.1\r\nHost: localhost";
     int ret;
-    u_long nLines;
-    u_long nChars;
+    size_t nLines;
+    size_t nChars;
     ret = HttpHeaders::validHTTPRequest (incompleteRequest,
                                         strlen (incompleteRequest),
                                         &nLines,
@@ -202,8 +202,8 @@ public:
     HttpRequestHeader header;
     Connection connection;
     const char *requestStr;
-    u_long  bufferLength;
-    u_long requestLength;
+    size_t  bufferLength;
+    size_t requestLength;
     int ret;
 
     requestStr = "GET /resource HTTP/1.1\r\nHost: localhost\r\n" \
@@ -240,8 +240,8 @@ public:
     HttpRequestHeader header;
     Connection connection;
     const char *requestStr;
-    u_long  bufferLength;
-    u_long requestLength;
+    size_t  bufferLength;
+    size_t requestLength;
     int ret;
 
     requestStr = "GET /resource HTTP/1.1\r\nHost: localhost\r\n" \

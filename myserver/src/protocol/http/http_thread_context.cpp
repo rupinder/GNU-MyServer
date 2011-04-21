@@ -29,14 +29,14 @@
  */
 const char* HttpThreadContext::getData (const char *name)
 {
-  Vhost *vh = (Vhost*)connection->host;
-
   string *ret = other.get (string (name));
-
   if (ret)
     return ret->c_str ();
-  else
-    return vh ? vh->getData (name) : NULL;
+
+  if (connection->host)
+    return connection->host->getData (name);
+
+  return NULL;
 }
 
 /*!

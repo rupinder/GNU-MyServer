@@ -49,20 +49,20 @@ class HttpHeaders
 {
 public:
   static int buildHTTPRequestHeaderStruct (const char* input,
-                                           u_long inputSize,
-                                           u_long* nHeaderChars,
+                                           size_t inputSize,
+                                           size_t* headerSize,
                                            HttpRequestHeader *request,
                                            Connection* connection);
 
   static int buildHTTPResponseHeaderStruct (const char *input,
                                             HttpResponseHeader *response,
-                                            u_long* nbtr);
+                                            size_t* nbtr);
 
   static int sendHeader (HttpResponseHeader &response, Stream &stream,
                          MemBuf &memBuf, HttpThreadContext *ctx);
 
-  static int validHTTPRequest (const char*, u_long, u_long*, u_long*);
-  static int validHTTPResponse (const char*, u_long*, u_long*);
+  static int validHTTPRequest (const char *, size_t, size_t *, size_t *);
+  static int validHTTPResponse (const char *, size_t *, size_t *);
 
   static void resetHTTPRequest (HttpRequestHeader *request);
   static void resetHTTPResponse (HttpResponseHeader *response);
@@ -70,8 +70,8 @@ public:
   static void buildDefaultHTTPResponseHeader (HttpResponseHeader*);
   static void buildDefaultHTTPRequestHeader (HttpRequestHeader*);
 
-  static u_long buildHTTPResponseHeader (char*, HttpResponseHeader*);
-  static u_long buildHTTPRequestHeader (char*, HttpRequestHeader*);
+  static size_t buildHTTPResponseHeader (char *, HttpResponseHeader*);
+  static size_t buildHTTPRequestHeader (char *, HttpRequestHeader*);
 
 protected:
   static int readReqAuthLine (HttpRequestHeader *request,

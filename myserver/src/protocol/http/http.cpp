@@ -144,7 +144,7 @@ int Http::traceHTTPRESOURCE (string& filename, bool mapped)
 {
   int ret;
   char tmpStr[12];
-  int contentLength = (int) td->nHeaderChars;
+  int contentLength = (int) td->headerSize;
   string time;
   int permissions;
   try
@@ -843,7 +843,6 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
     {
       td->buffer = a->getActiveThread ()->getBuffer ();
       td->auxiliaryBuffer = a->getActiveThread ()->getAuxiliaryBuffer ();
-      td->buffersize = a->getActiveThread ()->getBufferSize ();
       td->nBytesToRead = nbtr;
       td->connection = a;
       td->id = id;
@@ -892,7 +891,7 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
       validRequest =
         HttpHeaders::buildHTTPRequestHeaderStruct (td->buffer->getBuffer (),
                                                    td->buffer->getRealLength (),
-                                                   &(td->nHeaderChars),
+                                                   &(td->headerSize),
                                                    &(td->request),
                                                    td->connection);
 
@@ -937,7 +936,7 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
           int httpErrorCode;
           int readPostRet;
           /* Be sure that the client can handle the 100 status code.  */
-          if (nbtr == td->nHeaderChars && td->request.contentLength.compare ("0")
+          if (nbtr == td->headerSize && td->request.contentLength.compare ("0")
               && td->request.ver.compare ("HTTP/1.0"))
             {
               const char* msg = "HTTP/1.1 100 Continue\r\n\r\n";
@@ -1060,16 +1059,16 @@ int Http::controlConnection (ConnectionPtr a, char*, char*, u_long, u_long,
               u_long bufferStrLen = strlen (td->buffer->getBuffer ());
               u_long remainingData = 0;
 
-              if (bufferStrLen - td->nHeaderChars >= MYSERVER_KB (8))
+              if (bufferStrLen - td->headerSize >= MYSERVER_KB (8))
                 remainingData = MYSERVER_KB (8);
               else
-                remainingData = bufferStrLen - td->nHeaderChars;
+                remainingData = bufferStrLen - td->headerSize;
 
               if (remainingData)
                 {
                   const char *data = (td->buffer->getBuffer ()
-                                      + td->nHeaderChars);
-                  u_long toCopy = nbtr - td->nHeaderChars;
+                                      + td->headerSize);
+                  u_long toCopy = nbtr - td->headerSize;
 
                   a->getConnectionBuffer ()->setBuffer (data, toCopy);
                   pipelineData = true;
