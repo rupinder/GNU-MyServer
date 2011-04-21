@@ -64,7 +64,6 @@ options['log_color.error_bg'] = ('Error log background colour.', 'string', )
 
 # Other
 options['connection.timeout'] = ('Timeout for every client\'s connected to server. If the client doesn\'t request anything for n seconds the connection with the client is closed. Set this to 0 if you don\'t want to use keep-alive-connections', 'integer', )
-options['gzip.threshold'] = ('Define the gzip compression threshold value.', 'integer', )
 options['symlinks.follow'] = ('Define if links should be followed.', 'bool', )
 
 # don't put 'other' or 'unknown' here

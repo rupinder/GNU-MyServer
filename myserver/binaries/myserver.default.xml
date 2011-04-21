@@ -66,9 +66,6 @@
   <!--DEFINE THE ADMINISTRATOR E-MAIL.  -->
   <DEFINE name="server.admin" value="root@localhost" />
 
-  <!--DEFINE THE GZIP COMPRESSION THRESHOLD VALUE.  -->
-  <DEFINE name="gzip.threshold" value="1048576" />
-
   <!--DEFINE IF LINKS SHOULD BE FOLLOWED.  -->
   <DEFINE name="symlinks.follow" value="YES" />
 
