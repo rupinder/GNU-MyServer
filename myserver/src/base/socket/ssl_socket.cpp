@@ -78,7 +78,6 @@ SslSocket::SslSocket ()
 SslSocket::~SslSocket ()
 {
   freeSSL ();
-  fd = -1;
 }
 
 /*!
@@ -86,7 +85,14 @@ SslSocket::~SslSocket ()
  */
 int SslSocket::close ()
 {
-  return Socket::close ();
+  int ret;
+  if (sock)
+    ret = sock->close ();
+  else
+    ret = Socket::close ();
+
+  this->fd = -1;
+  return ret;
 }
 
 /*!
