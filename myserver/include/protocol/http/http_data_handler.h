@@ -24,7 +24,9 @@
 # include <include/protocol/protocol.h>
 # include "include/protocol/http/http_headers.h"
 # include <include/filter/filters_chain.h>
+#include <include/filter/filters_factory.h>
 # include <include/filter/memory_stream.h>
+# include <include/conf/mime/mime_manager.h>
 
 
 /*!
@@ -50,7 +52,8 @@ public:
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void checkDataChunks (HttpThreadContext *, bool *, bool *);
+  static void checkDataChunks (HttpThreadContext* td, bool* keepalive,
+                               bool* useChunks, bool disableEncoding = false);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,
@@ -76,6 +79,11 @@ public:
                                       FiltersChain &chain,
                                       bool useChunks);
 
+  static size_t generateFiltersChain (HttpThreadContext *td,
+                                      FiltersFactory *factory,
+                                      FiltersChain &fc,
+                                      MimeRecord *mime,
+                                      MemoryStream &memStream);
 };
 
 #endif

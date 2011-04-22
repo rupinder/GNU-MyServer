@@ -167,14 +167,14 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
  */
 void
 HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool* keepalive,
-                                  bool* useChunks)
+                                  bool* useChunks, bool disableEncoding)
 {
   *keepalive = td->request.isKeepAlive ();
   *useChunks = false;
 
   *keepalive &= !td->request.ver.compare ("HTTP/1.1");
 
-  if (*keepalive)
+  if (!disableEncoding && *keepalive)
     {
       HttpResponseHeader::Entry *e;
       e = td->response.other.get ("transfer-encoding");
@@ -261,4 +261,31 @@ HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
     }
 
   return ret;
+}
+
+/*!
+  Populate a FiltersChain object ensuring desired filters are supported by the
+  client.
+ */
+size_t
+HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
+                                       FiltersFactory *factory,
+                                       FiltersChain &fc,
+                                       MimeRecord *mime,
+                                       MemoryStream &memStream)
+{
+  size_t nbw;
+  HttpRequestHeader::Entry* e = td->request.other.get ("accept-encoding");
+  memStream.refresh ();
+  factory->chain (&fc, mime->filters, &memStream, &nbw, 0, false,
+                  e ? e->value : "");
+
+
+  if (fc.hasModifiersFilters ())
+    {
+      string filters;
+      fc.getName (filters);
+      td->response.setValue ("content-encoding", filters.c_str ());
+    }
+  return nbw;
 }

@@ -49,9 +49,6 @@ int HttpFile::putFile (HttpThreadContext* td, string& filename)
 
   try
   {
-    if (td->request.isKeepAlive ())
-      td->response.setValue ("connection", "keep-alive");
-
     if (!(td->permissions & MYSERVER_PERMISSION_WRITE))
       return td->http->sendAuth ();
 
@@ -204,12 +201,11 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   size_t bytesToSend;
   off_t firstByte = td->request.rangeByteBegin;
   off_t lastByte = td->request.rangeByteEnd;
-  bool keepalive = false;
+  bool fastCopyAllowed;
+  bool keepalive;
   bool useChunks = false;
-  bool useModifiers = false;
   MemoryStream memStream (td->auxiliaryBuffer);
   FiltersChain chain;
-  size_t nbw;
   size_t nbr;
   time_t lastMT;
   string tmpTime;
@@ -293,8 +289,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     bytesToSend = lastByte - firstByte;
 
-    keepalive = td->request.isKeepAlive ();
-
     td->buffer->setLength (0);
 
     /* If a Range was requested send 206 and not 200 for success.  */
@@ -317,72 +311,20 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             td->response.other.put (e->name, e);
           }
       }
-    chain.setStream (&memStream);
-    if (td->mime)
-      {
-        HttpRequestHeader::Entry* e = td->request.other.get ("accept-encoding");
-        memStream.refresh ();
-        if (td->mime)
-          Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                               td->mime->filters,
-                                                               &memStream,
-                                                               &nbw, 0, false,
-                                                               e ? e->value : "");
-      }
 
-    useModifiers = chain.hasModifiersFilters ();
-    if (! useModifiers)
+    generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                          chain, td->mime, memStream);
+
+    fastCopyAllowed = chain.isEmpty ()
+      && !(td->http->getProtocolOptions () & Protocol::SSL);
+
+    checkDataChunks (td, &keepalive, &useChunks, fastCopyAllowed);
+
+    if (! chain.hasModifiersFilters ())
       {
         ostringstream buffer;
         buffer << bytesToSend;
         td->response.contentLength.assign (buffer.str ());
-      }
-
-    if (keepalive)
-      td->response.setValue ("connection", "keep-alive");
-    else
-      td->response.setValue ("connection", "close");
-
-    if (useModifiers)
-      {
-        string s;
-        HttpResponseHeader::Entry *e;
-        chain.getName (s);
-        e = td->response.other.get ("content-encoding");
-
-        if (e)
-          e->value.assign (s);
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("content-encoding");
-            e->value.assign (s);
-            td->response.other.put (e->name, e);
-          }
-        /* Do not use chunked transfer with old HTTP/1.0 clients.  */
-        if (keepalive)
-          useChunks = true;
-      }
-
-    if (useChunks)
-      {
-        HttpResponseHeader::Entry *e;
-        e = td->response.other.get ("transfer-encoding");
-        if (e)
-          e->value.assign ("chunked");
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("transfer-encoding");
-            e->value.assign ("chunked");
-            td->response.other.put (e->name, e);
-          }
-      }
-    else
-      {	HttpResponseHeader::Entry *e;
-        e = td->response.other.remove ("transfer-encoding");
-        if (e)
-          delete e;
       }
 
     HttpHeaders::sendHeader (td->response, *td->connection->socket,
@@ -404,8 +346,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       Check if there are all the conditions to use a direct copy from the
       file to the socket.
     */
-    if (!useChunks && chain.isEmpty ()
-        && !(td->http->getProtocolOptions () & Protocol::SSL))
+    if (fastCopyAllowed)
       {
         size_t nbw = 0;
         file->fastCopyToSocket (td->connection->socket, firstByte,
@@ -433,7 +374,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     for (;;)
       {
         size_t nbr;
-        size_t nbw;
 
         /* Check if there are other bytes to send.  */
         if (! bytesToSend)
