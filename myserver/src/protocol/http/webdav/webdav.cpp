@@ -302,12 +302,9 @@ int WebDAV::propfind (HttpThreadContext* td)
 
       ff->chain (&chain, filters, td->connection->socket, &nbw, 1);
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       td->response.httpStatus = 207;
-      if (keepalive)
-        td->response.setValue ("connection", "keep-alive");
-      else
-        td->response.setValue ("connection", "close");
+
+      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       /* Determine the Depth.  */
@@ -342,8 +339,9 @@ int WebDAV::propfind (HttpThreadContext* td)
             break;
         }
 
-      if (useChunks)
-        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream,
+                                                             chain, useChunks);
 
       return HttpDataHandler::RET_OK;
     }
@@ -619,18 +617,9 @@ int WebDAV::lock (HttpThreadContext* td)
 
       ff->chain (&chain, filters, td->connection->socket, &nbw, 1);
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       td->response.httpStatus = 201;
 
-      if (keepalive)
-        td->response.setValue ("connection", "keep-alive");
-      else
-        td->response.setValue ("connection", "close");
-
-        td->response.setValue ("Lock-Token", urn);
-
-        td->response.setValue ("Content-Type", "text/xml");
-
+      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       string lc = "http://" + *td->request.getValue ("Host", NULL) + td->request.uri;

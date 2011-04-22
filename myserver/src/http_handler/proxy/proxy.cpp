@@ -215,17 +215,8 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
 
   /* At this point we can modify the response struct before send it to the
      client.  */
-  checkDataChunks (td, &keepalive, &useChunks);
-  if (td->response.contentLength.length ())
-    useChunks = false;
 
-  td->response.setValue ("Connection", keepalive ? "keep-alive" : "close");
-
-  if (useChunks)
-    td->response.setValue ("Transfer-encoding", "chunked");
-  else
-    td->response.clearValue ("Transfer-encoding");
-
+  checkDataChunks (td, &keepalive, &useChunks, td->response.contentLength.length ());
   u_long hdrLen = HttpHeaders::buildHTTPResponseHeader (td->buffer->getBuffer (),
                                                         &td->response);
 
@@ -345,8 +336,9 @@ int Proxy::readPayLoad (HttpThreadContext* td,
             break;
         }
     }
-  if (useChunks)
-    out->getStream ()->write ("0\r\n\r\n", 5, &nbw);
+
+  MemoryStream memStream (td->auxiliaryBuffer);
+  td->sentData += completeHTTPResponse (td, memStream, *out, useChunks);
 
   return HttpDataHandler::RET_OK;
 }

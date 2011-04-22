@@ -74,8 +74,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
   data.error = false;
   data.filtersChain = &chain;
   data.headerSent = false;
-  data.keepAlive = false;
-  data.useChunks = false;
 
   if (!(td->permissions & MYSERVER_PERMISSION_EXECUTE))
     return td->http->sendAuth ();
@@ -103,7 +101,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
                                                              td->connection->socket,
                                                              &nbw, 1);
 
-      checkDataChunks (td, &(data.keepAlive), &(data.useChunks));
       try
         {
           hinstLib.loadLibrary (exec, 0);
@@ -135,8 +132,8 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
           return td->http->raiseHTTPError (data.errorPage);
         }
 
-      if (data.useChunks && !data.error)
-        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, chain, data.useChunks);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
@@ -161,6 +158,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
   if (mcd->error)
     return 1;
 
+  checkDataChunks (mcd->td, &mcd->keepAlive, &mcd->useChunks);
   if (!mcd->headerSent && sendHeader (mcd))
     return 1;
 

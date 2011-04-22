@@ -65,20 +65,14 @@ BOOL WINAPI ISAPI_ServerSupportFunctionExport (HCONN hConn, DWORD dwHSERRequest,
       mapInfo=(HSE_URL_MAPEX_INFO*)lpdwDataType;
       mapInfo->lpszPath = 0;
       tmp.assign (mapInfo->lpszPath);
-      ret=ConnInfo->td->http->getPath (tmp,(char*) lpvBuffer, 0);
+      ret = ConnInfo->td->http->getPath (tmp, (char*) lpvBuffer, 0);
       if (ret != 200)
         return 1;
 
-      mapInfo->cchMatchingURL=(DWORD)strlen ((char*) lpvBuffer);
-      mapInfo->cchMatchingPath=(DWORD)strlen (mapInfo->lpszPath);
+      mapInfo->cchMatchingURL = (DWORD) strlen ((char*) lpvBuffer);
+      mapInfo->cchMatchingPath = (DWORD) strlen (mapInfo->lpszPath);
       delete [] mapInfo->lpszPath;
       mapInfo->lpszPath = new char[tmp.length () + 1];
-      if (mapInfo->lpszPath == 0)
-        if (buffer==0)
-          {
-            SetLastError (ERROR_INSUFFICIENT_BUFFER);
-            return 0;
-          }
       strcpy (mapInfo->lpszPath, tmp.c_str ());
       mapInfo->dwFlags = HSE_URL_FLAGS_WRITE | HSE_URL_FLAGS_SCRIPT
         | HSE_URL_FLAGS_EXECUTE;
@@ -86,7 +80,7 @@ BOOL WINAPI ISAPI_ServerSupportFunctionExport (HCONN hConn, DWORD dwHSERRequest,
 
     case HSE_REQ_MAP_URL_TO_PATH:
       if (((char*) lpvBuffer)[0])
-        strcpy (uri,(char*) lpvBuffer);
+        strcpy (uri, (char*) lpvBuffer);
       else
         lstrcpyn (uri,ConnInfo->td->request.uri.c_str (),
                  (int) ConnInfo->td->request.uri.length ()
@@ -133,15 +127,15 @@ BOOL WINAPI ISAPI_ServerSupportFunctionExport (HCONN hConn, DWORD dwHSERRequest,
       break;
 
     case HSE_REQ_DONE_WITH_SESSION:
-      ConnInfo->td->response.httpStatus=*(DWORD*)lpvBuffer;
+      ConnInfo->td->response.httpStatus = *(DWORD*) lpvBuffer;
       SetEvent (ConnInfo->ISAPIDoneEvent);
       break;
 
     case HSE_REQ_IS_KEEP_CONN:
       if (ConnInfo->td->request.isKeepAlive ())
-        *((BOOL*)lpvBuffer)=1;
+        *((BOOL*)lpvBuffer) = 1;
       else
-        *((BOOL*)lpvBuffer)=0;
+        *((BOOL*)lpvBuffer) = 0;
       break;
 
     default:
@@ -204,11 +198,9 @@ int Isapi::SendHeader (HttpThreadContext* td,ConnectionPtr a,char *data)
 BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwBytes,
                                     DWORD /*!dwReserved*/)
 {
-  int keepalive;
   char* buffer;
   ConnTableRecord *ConnInfo;
-  char chunkSize[15];
-  size_t nbw=0;
+  size_t nbw = 0;
 
   if (*lpdwBytes == 0)
     return HttpDataHandler::RET_FAILURE;
@@ -228,14 +220,13 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
     ((Vhost*)(ConnInfo->td->connection->host))->warningsLogWrite (_("ISAPI: internal error"));
     return HttpDataHandler::RET_FAILURE;
   }
-  keepalive = connection && (!strcasecmp (connection->value.c_str (), "keep-alive")) ;
 
   /*If the HTTP header was sent do not send it again. */
   if (!ConnInfo->headerSent)
     {
       int headerSize = 0;
       u_long size = (u_long) strlen (buffer);
-      strncat (buffer, (char*)Buffer, *lpdwBytes);
+      strncat (buffer, (char *) Buffer, *lpdwBytes);
       ConnInfo->headerSize += *lpdwBytes;
       if (buffer[0] == '\r')
         {
@@ -266,102 +257,60 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
                 }
             }
         }
-      /*!
-       *Handle the HTTP header if exists.
+      /*
+        Handle the HTTP header if exists.
        */
       if (! headerSize)
         nbw = *lpdwBytes;
       else
         {
-          int len = ConnInfo->headerSize-headerSize;
+          int len = ConnInfo->headerSize - headerSize;
 
           HttpHeaders::buildHTTPResponseHeaderStruct
             (ConnInfo->td->buffer->getBuffer (), &ConnInfo->td->response,
              &(ConnInfo->td->nBytesToRead));
 
-          if (keepalive)
-            {
-              HttpResponseHeader::Entry *e;
-              e = ConnInfo->td->response.other.get ("transfer-encoding");
-              if (e)
-                e->value.assign ("chunked");
-              else
-                {
-                  e = new HttpResponseHeader::Entry ();
-                  e->name.assign ("transfer-encoding");
-                  e->value.assign ("chunked");
-                  ConnInfo->td->response.other.put (e->name, e);
-                }
-            }
-          else
-            ConnInfo->td->response.setValue ("connection", "Close");
-
+          HttpDataHandler::checkDataChunks (ConnInfo->td, &ConnInfo->keepalive,
+                                            &ConnInfo->useChunks);
           if (HttpHeaders::sendHeader (ConnInfo->td->response,
                                        *ConnInfo->td->connection->socket,
                                        *ConnInfo->td->auxiliaryBuffer,
                                        ConnInfo->td))
             return HttpDataHandler::RET_FAILURE;
-          /*! Save the headerSent status. */
-          ConnInfo->headerSent=1;
 
-          /*! If only the header was requested return. */
+          /* Save the headerSent status.  */
+          ConnInfo->headerSent = 1;
+
+          /* If only the header was requested return.  */
           if (ConnInfo->headerSent && ConnInfo->onlyHeader
               || ConnInfo->td->response.getStatusType ()
               == HttpResponseHeader::SUCCESSFUL)
             return 0;
 
-          /*!Send the first chunk. */
+          size_t written = 0;
           if (len)
-            {
-              /*! With keep-alive connections use chunks.*/
-              if (keepalive)
-                {
-                  sprintf (chunkSize, "%x\r\n", len);
-                  if (ConnInfo->chain.getStream ()->write (chunkSize,
-                                                           (int) strlen (chunkSize), &nbw))
-                    return HttpDataHandler::RET_FAILURE;
-                }
+            written =
+              HttpDataHandler::appendDataToHTTPChannel (ConnInfo->td,
+                                                        buffer + headerSize,
+                                                        len,
+                                                        ConnInfo->chain,
+                                                        ConnInfo->useChunks);
+          ConnInfo->td->sentData += written;
 
-              if (ConnInfo->chain.write ((char*)(buffer + headerSize),
-                                         len, &nbw))
-                return HttpDataHandler::RET_FAILURE;
-              ConnInfo->dataSent += nbw;
-
-              /*! Send the chunk footer.  */
-              if (keepalive)
-                {
-                  if (ConnInfo->chain.getStream ()->write ("\r\n", 2, &nbw))
-                    return HttpDataHandler::RET_FAILURE;
-                }
-            }
+          *lpdwBytes = written;
         }
     }
-  else/*!Continue to send data chunks*/
+  else
     {
-      if (keepalive)
-        {
-          sprintf (chunkSize, "%x\r\n", *lpdwBytes);
-          nbw = ConnInfo->connection->socket->send (chunkSize,
-                                                    (int) strlen (chunkSize), 0);
-          if ((nbw == (size_t) -1) || (! nbw))
-            return HttpDataHandler::RET_FAILURE;
-        }
-
-      if (ConnInfo->chain.write ((char*)Buffer,*lpdwBytes, &nbw))
-        return HttpDataHandler::RET_FAILURE;
-      ConnInfo->dataSent += nbw;
-
-      if (keepalive)
-        {
-          nbw = ConnInfo->connection->socket->send ("\r\n", 2, 0);
-          if ((nbw == (size_t)-1) || (!nbw))
-            return HttpDataHandler::RET_FAILURE;
-        }
+      size_t written =
+        HttpDataHandler::appendDataToHTTPChannel (ConnInfo->td,
+                                                  (const char *) Buffer,
+                                                  *lpdwBytes,
+                                                  ConnInfo->chain,
+                                                  ConnInfo->useChunks);
+      ConnInfo->td->sentData += written;
+      *lpdwBytes = written;
     }
-
-  *lpdwBytes = nbw;
-
-  ConnInfo->td->sentData += ConnInfo->dataSent;
 
   return HttpDataHandler::RET_OK;
 }
@@ -389,12 +338,11 @@ BOOL WINAPI ISAPI_ReadClientExport (HCONN hConn, LPVOID lpvBuffer,
 
   if (ConnInfo == NULL)
     {
-      ((Vhost*)(ConnInfo->td->connection->host))->warningsLogWrite
-        (_("ISAPI: internal error"));
+      ConnInfo->td->connection->host->warningsLogWrite (_("ISAPI: internal error"));
       return HttpDataHandler::RET_FAILURE;
     }
 
-  ConnInfo->td->inputData.read ((char*) lpvBuffer, *lpdwSize, &numRead);
+  ConnInfo->td->inputData.read ((char *) lpvBuffer, *lpdwSize, &numRead);
 
   if (numRead < 0)
     {
@@ -878,8 +826,10 @@ int Isapi::send (HttpThreadContext* td,
       HttpRequestHeader::Entry *connection
         = connTable[connIndex].td->request.other.get ("connection");
 
-      if (connection && !strcasecmp (connection->value.c_str (), "keep-alive"))
-        connTable[connIndex].chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream,
+                                            connTable[connIndex].chain,
+                                            connTable[connIndex].useChunks);
 
       switch (ret)
         {

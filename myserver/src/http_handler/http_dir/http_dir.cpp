@@ -325,10 +325,8 @@ int HttpDir::send (HttpThreadContext* td,
   ReadDirectory fd;
   FiltersChain chain;
   int lastSlash = 0;
-  bool useChunks = false;
   char* bufferloop;
   const char* cssFile;
-  bool keepalive = false;
   vector<HttpDir::FileStruct> files;
   size_t sortIndex;
   char sortType = 0;
@@ -362,8 +360,6 @@ int HttpDir::send (HttpThreadContext* td,
 
       lastSlash = td->request.uri.rfind ('/') + 1;
 
-      checkDataChunks (td, &keepalive, &useChunks);
-
       td->response.setValue ("content-type", "text/html");
 
       ignPattern = td->securityToken.getData ("http.dir.ignore",
@@ -384,6 +380,9 @@ int HttpDir::send (HttpThreadContext* td,
             }
         }
 
+      bool keepalive = false;
+      bool useChunks = false;
+      checkDataChunks (td, &keepalive, &useChunks);
       HttpHeaders::sendHeader (td->response, *td->connection->socket,
                                *td->buffer, td);
 
@@ -598,8 +597,8 @@ int HttpDir::send (HttpThreadContext* td,
         if (*bufferloop == '\\')
           *bufferloop = '/';
 
-      if (useChunks)
-        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
     }
   catch (exception & e)
     {

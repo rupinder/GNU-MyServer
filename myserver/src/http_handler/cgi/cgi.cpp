@@ -290,19 +290,15 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
   size_t nbw = 0;
   size_t nBytesRead = 0;
   u_long procStartTime;
-  bool useChunks = false;
-  bool keepalive = false;
   int ret = 0;
-
+  bool useChunks;
   /* Reset the auxiliaryBuffer length counter. */
   td->auxiliaryBuffer->setLength (0);
 
   procStartTime = getTicks ();
 
-  checkDataChunks (td, &keepalive, &useChunks);
-
   if (sendHeader (td, stdOutFile, chain, cgiProc, onlyHeader, nph,
-                  procStartTime, keepalive, useChunks, &ret))
+                  procStartTime, &useChunks, &ret))
     return ret;
 
   if (!nph && onlyHeader)
@@ -343,16 +339,15 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
         break;
 
       if (nBytesRead)
-      td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
+        td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                   td->auxiliaryBuffer->getBuffer (),
                                                   nBytesRead,
                                                   chain,
                                                   useChunks);
     }
 
-  /* Send the last null chunk if needed.  */
-  if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw))
-    return HttpDataHandler::RET_FAILURE;
+  MemoryStream memStream (td->auxiliaryBuffer);
+  td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
 
   return HttpDataHandler::RET_OK;
 }
@@ -361,10 +356,9 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
   Send the HTTP header.
   \return nonzero if the reply is already complete.
  */
-int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chain,
-                     Process &cgiProc, bool onlyHeader, bool nph,
-                     u_long procStartTime, bool keepalive, bool useChunks,
-                     int *ret)
+int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
+                     FiltersChain &chain, Process &cgiProc, bool onlyHeader,
+                     bool nph, u_long procStartTime, bool *useChunks, int *ret)
 {
   u_long headerSize = 0;
   bool headerCompleted = false;
@@ -443,15 +437,14 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
   /* Send the header.  */
   if (!nph)
     {
-      if (keepalive)
-        td->response.setValue ("Connection", "keep-alive");
-
       /* Send the header.  */
       if (headerSize)
         HttpHeaders::buildHTTPResponseHeaderStruct (td->auxiliaryBuffer->getBuffer (),
                                                     &td->response,
                                                     &(td->nBytesToRead));
         {
+          bool keepalive = false;
+
           string* location = td->response.getValue ("Location", NULL);
 
           /* If it is present "Location: foo" in the header then send a redirect
@@ -462,6 +455,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
               return 1;
             }
 
+          checkDataChunks (td, &keepalive, useChunks);
           HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                    *td->buffer, td);
         }

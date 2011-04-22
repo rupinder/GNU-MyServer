@@ -218,8 +218,6 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
   size_t nbw, nbr;
   HttpThreadContext* td = ctx->td;
 
-  checkDataChunks (td, &keepalive, &useChunks);
-
   for (;;)
     {
       while (!ctx->sock.bytesToRead ())
@@ -259,6 +257,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                                 &td->response,
                                                 &(td->nBytesToRead));
 
+  checkDataChunks (td, &keepalive, &useChunks);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
                            *td->auxiliaryBuffer, td);
 
@@ -286,8 +285,8 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                      nbr, *chain, useChunks);
         }
 
-      if (useChunks)
-        chain->getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, *chain, useChunks);
     }
 
   return HttpDataHandler::RET_OK;

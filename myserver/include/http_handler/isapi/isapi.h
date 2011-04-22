@@ -111,6 +111,8 @@ typedef struct _EXTENSION_CONTROL_BLOCK
 
 struct ConnTableRecord
 {
+  bool keepalive;
+  bool useChunks;
   FiltersChain chain;
   BOOL Allocated;
   bool onlyHeader;

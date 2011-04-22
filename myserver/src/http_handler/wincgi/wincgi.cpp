@@ -28,6 +28,7 @@
 #include <include/base/string/stringutils.h>
 #include <include/filter/filters_chain.h>
 #include <include/base/safetime/safetime.h>
+#include <include/filter/filters_chain.h>
 
 #ifdef WIN32
 # include <direct.h>
@@ -64,6 +65,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
                   const char *cgipath, bool /*execute*/, bool onlyHeader)
 {
 #ifdef WIN32
+  bool keepalive, useChunks;
   FiltersChain chain;
   Process proc;
   size_t nbr;
@@ -295,11 +297,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
 
       HttpHeaders::buildHTTPResponseHeaderStruct (buffer, &td->response, &(td->nBytesToRead));
 
-      /*
-       *Always specify the size of the HTTP contents.
-       */
-      stream << OutFileHandle.getFileSize () - headerSize;
-      td->response.contentLength.assign (stream.str ());
+      checkDataChunks (td, &keepalive, &useChunks);
       HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                *td->buffer, td);
 
@@ -312,10 +310,11 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
           return HttpDataHandler::RET_OK;
         }
 
-      size_t written;
-      chain.write ((char*)(buffer + headerSize), nBytesRead - headerSize,
-                   &written);
-      td->dataSent += written;
+      td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
+                                                                buffer + headerSize,
+                                                                nBytesRead - headerSize,
+                                                                chain, useChunks);
+
 
       if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
         {
@@ -327,11 +326,18 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
               if (! nBytesRead)
                 break;
 
-              chain.write ((char*) buffer, nBytesRead, &nbw);
+              td->sentData +=
+                HttpDataHandler::appendDataToHTTPChannel (td, buffer,
+                                                          nBytesRead, chain,
+                                                          useChunks);
+
               td->sentData += nbw;
             }
           while (nBytesRead);
         }
+
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
 
       chain.clearAllFilters ();
       OutFileHandle.close ();

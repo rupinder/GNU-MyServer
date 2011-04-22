@@ -77,9 +77,6 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
   string moreArg;
   bool responseCompleted = false;
 
-  con.useChunks = false;
-  con.keepalive = false;
-
   con.td = td;
   con.headerSent = false;
 
@@ -205,7 +202,6 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       initialTicks = getTicks ();
 
       td->buffer->setLength (0);
-      checkDataChunks (td, &con.keepalive, &con.useChunks);
 
       do
         {
@@ -287,9 +283,8 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
         }
       while (! exit);
 
-      /* Send the last null chunk if needed.  */
-      if (!responseCompleted && con.useChunks && !onlyHeader)
-        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, chain, con.useChunks);
 
       chain.clearAllFilters ();
       con.sock.close ();
@@ -695,6 +690,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
         }
     }
 
+  checkDataChunks (con->td, &con->keepalive, &con->useChunks);
   if (HttpHeaders::sendHeader (con->td->response, *con->td->connection->socket,
                                *con->td->auxiliaryBuffer, con->td))
     {

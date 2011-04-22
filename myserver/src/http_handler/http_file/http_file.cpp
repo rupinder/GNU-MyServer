@@ -318,8 +318,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     fastCopyAllowed = chain.isEmpty ()
       && !(td->http->getProtocolOptions () & Protocol::SSL);
 
-    checkDataChunks (td, &keepalive, &useChunks, fastCopyAllowed);
-
     if (! chain.hasModifiersFilters ())
       {
         ostringstream buffer;
@@ -327,6 +325,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         td->response.contentLength.assign (buffer.str ());
       }
 
+    checkDataChunks (td, &keepalive, &useChunks, fastCopyAllowed);
     HttpHeaders::sendHeader (td->response, *td->connection->socket,
                              *td->buffer, td);
 
