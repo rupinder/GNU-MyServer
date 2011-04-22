@@ -122,7 +122,7 @@ int SslSocket::rawSend (const char* buffer, int len, int flags)
   int ret;
   do
     {
-      ret = gnutls_record_send (session, buffer, len);
+      ret = gnutls_record_send (session, buffer + sent, len - sent);
       if (ret > 0)
         sent += ret;
     }
@@ -246,16 +246,11 @@ int SslSocket::recv (char* buffer, int len, int flags)
 {
   int ret = 0;
 
-  for (;;)
+  do
     {
-      do
-        {
-          ret = gnutls_record_recv (session, buffer, len);
-        }
-      while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
-      if (ret > 0)
-        break;
+      ret = gnutls_record_recv (session, buffer, len);
     }
+  while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
 
   if (ret < 0)
     throw SslException (ret);
