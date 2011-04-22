@@ -274,12 +274,13 @@ HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
                                        MimeRecord *mime,
                                        MemoryStream &memStream)
 {
-  size_t nbw;
+  size_t nbw = 0;
   HttpRequestHeader::Entry* e = td->request.other.get ("accept-encoding");
   memStream.refresh ();
-  factory->chain (&fc, mime->filters, &memStream, &nbw, 0, false,
-                  e ? e->value : "");
 
+  if (mime)
+    factory->chain (&fc, mime->filters, &memStream, &nbw, 0, false,
+                    e ? e->value : "");
 
   if (fc.hasModifiersFilters ())
     {
@@ -287,5 +288,7 @@ HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
       fc.getName (filters);
       td->response.setValue ("content-encoding", filters.c_str ());
     }
+
+  fc.setStream (td->connection->socket);
   return nbw;
 }

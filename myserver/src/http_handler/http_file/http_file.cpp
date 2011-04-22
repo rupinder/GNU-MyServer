@@ -363,9 +363,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     file->seek (firstByte);
 
-    chain.setStream (td->connection->socket);
-
-
     td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain,
                                                         useChunks);
 
