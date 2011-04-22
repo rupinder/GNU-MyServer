@@ -216,11 +216,9 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   /* At this point we can modify the response struct before send it to the
      client.  */
 
-  checkDataChunks (td, &keepalive, &useChunks, td->response.contentLength.length ());
-  u_long hdrLen = HttpHeaders::buildHTTPResponseHeader (td->buffer->getBuffer (),
-                                                        &td->response);
-
-  out.getStream ()->write (td->buffer->getBuffer (), hdrLen, &nbw);
+  checkDataChunks (td, &keepalive, &useChunks,
+                   td->response.contentLength.length ());
+  HttpHeaders::sendHeader (td->response, *out.getStream (), *td->buffer, td);
 
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
