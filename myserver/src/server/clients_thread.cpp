@@ -261,7 +261,8 @@ int ClientsThread::controlConnections ()
 
   if (! c->isForceControl ())
     {
-      err = c->socket->recv (&((char*)(buffer.getBuffer ()))[dataRead],
+      int available = c->socket->dataAvailable ();
+      err = c->socket->recv (buffer.getBuffer () + dataRead,
                              MYSERVER_KB (8) - dataRead - 1, 0);
 
       if (err <= 0)
@@ -278,7 +279,7 @@ int ClientsThread::controlConnections ()
   nBytesToRead = dataRead + err;
 
   if ((dataRead + err) < MYSERVER_KB (8))
-    ((char*)buffer.getBuffer ())[dataRead + err] = '\0';
+    (buffer.getBuffer ())[dataRead + err] = '\0';
   else
     {
       server->deleteConnection (c);
@@ -289,8 +290,8 @@ int ClientsThread::controlConnections ()
     c->setnTries (0);
 
   if (dataRead)
-    memcpy ((char*) buffer.getBuffer (),
-            c->getConnectionBuffer ()->getBuffer (), dataRead);
+    memcpy (buffer.getBuffer (), c->getConnectionBuffer ()->getBuffer (),
+            dataRead);
 
   c->setActiveThread (this);
   try
