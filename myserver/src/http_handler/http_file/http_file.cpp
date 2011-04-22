@@ -457,9 +457,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             /* Read from the file the bytes to send.  */
             size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
 
-            if (useModifiers)
-              size = std::min (size, td->auxiliaryBuffer->getRealLength () / 2);
-
             file->read (td->buffer->getBuffer (), size, &nbr);
             if (nbr == 0)
               {
