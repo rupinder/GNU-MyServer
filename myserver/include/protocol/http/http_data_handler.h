@@ -55,16 +55,26 @@ public:
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,
                                          size_t size,
-                                         FiltersChain *chain,
+                                         FiltersChain &chain,
                                          bool useChunks,
                                          size_t realBufferSize,
-                                         MemoryStream *tmpStream);
+                                         MemoryStream &tmpStream);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,
                                          size_t size,
-                                         FiltersChain* chain,
+                                         FiltersChain &chain,
                                          bool useChunks);
+
+  static size_t beginHTTPResponse (HttpThreadContext *td,
+                                   MemoryStream &memStream,
+                                   FiltersChain &chain,
+                                   bool useChunks);
+
+  static size_t completeHTTPResponse (HttpThreadContext *td,
+                                      MemoryStream &memStream,
+                                      FiltersChain &chain,
+                                      bool useChunks);
 
 };
 

@@ -21,6 +21,7 @@
 #include <include/protocol/http/http_headers.h>
 #include <include/protocol/http/http.h>
 #include <include/protocol/http/http_data_handler.h>
+#include <include/filter/filters_chain.h>
 
 /*!
   Send a file to the client using the HTTP protocol.
@@ -76,16 +77,16 @@ int HttpDataHandler::unLoad ()
 size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                                  const char *buffer,
                                                  size_t size,
-                                                 FiltersChain *chain,
+                                                 FiltersChain &chain,
                                                  bool useChunks,
                                                  size_t realBufferSize,
-                                                 MemoryStream *tmpStream)
+                                                 MemoryStream &tmpStream)
 {
   char tmpBuf[BUFSIZ];
   size_t nbr, nbw, written = 0, totalNbw = 0;
-  Stream *oldStream = chain->getStream ();
+  Stream *oldStream = chain.getStream ();
 
-  if (! chain->hasModifiersFilters () || size == 0)
+  if (! chain.hasModifiersFilters () || size == 0)
     return appendDataToHTTPChannel (td, buffer, size, chain, useChunks);
 
   /*
@@ -102,23 +103,23 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
         {
           if (size - written)
             {
-              chain->setStream (tmpStream);
-              chain->write (buffer + written, size - written, &nbw);
-              chain->setStream (oldStream);
+              chain.setStream (&tmpStream);
+              chain.write (buffer + written, size - written, &nbw);
+              chain.setStream (oldStream);
               written += size;
             }
 
-          tmpStream->read (tmpBuf, BUFSIZ, &nbr);
+          tmpStream.read (tmpBuf, BUFSIZ, &nbr);
           if (nbr)
-            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, &directStream,
+            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, directStream,
                                                  useChunks);
         }
-      while (size - written);
-
+      while (size - written || nbr);
+      tmpStream.refresh ();
     }
   catch (...)
     {
-      chain->setStream (oldStream);
+      chain.setStream (oldStream);
       throw;
     }
 
@@ -138,7 +139,7 @@ size_t
 HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                           const char *buffer,
                                           size_t size,
-                                          FiltersChain *chain,
+                                          FiltersChain &chain,
                                           bool useChunks)
 {
   size_t tmp, nbw = 0;
@@ -147,15 +148,15 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
     {
       ostringstream chunkHeader;
       chunkHeader << hex << size << "\r\n";
-      chain->getStream ()->write (chunkHeader.str ().c_str (),
-                                  chunkHeader.str ().length (), &tmp);
+      chain.getStream ()->write (chunkHeader.str ().c_str (),
+                                 chunkHeader.str ().length (), &tmp);
     }
 
   if (size)
-    chain->write (buffer, size, &nbw);
+    chain.write (buffer, size, &nbw);
 
   if (useChunks)
-    chain->getStream ()->write ("\r\n", 2, &tmp);
+    chain.getStream ()->write ("\r\n", 2, &tmp);
 
   return nbw;
 }
@@ -188,4 +189,76 @@ HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool* keepalive,
         }
       *useChunks = true;
     }
+}
+
+/*!
+  Begin a HTTP response.
+*/
+size_t
+HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
+                                    MemoryStream &memStream,
+                                    FiltersChain &chain,
+                                    bool useChunks)
+{
+  size_t ret = 0;
+  /*
+    Flush initial data.  This is data that filters could have added
+    and we have to send before the file itself, for example the gzip
+    filter add a header to file.
+  */
+  if (memStream.availableToRead ())
+    {
+      size_t nbr;
+      memStream.read (td->buffer->getBuffer (),
+                      td->buffer->getRealLength (), &nbr);
+
+      memStream.refresh ();
+      if (nbr)
+        {
+          FiltersChain directChain (chain.getStream ());
+          ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (), nbr,
+                                          directChain, useChunks);
+        }
+    }
+
+  return ret;
+}
+
+/*!
+  Complete a HTTP response.
+ */
+size_t
+HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
+                                       MemoryStream &memStream,
+                                       FiltersChain &chain,
+                                       bool useChunks)
+{
+  size_t ret = 0;
+  /* If we don't use chunks we can flush directly.  */
+  if (! useChunks)
+    chain.flush (&ret);
+  else
+    {
+      /*
+        Replace the final stream before the flush and write to a
+        memory buffer, after all the data is flushed from the
+        chain we can replace the stream with the original one and
+        write there the HTTP data chunk.
+      */
+      size_t nbr, nbw;
+      Stream* tmpStream = chain.getStream ();
+      FiltersChain directChain (tmpStream);
+      memStream.refresh ();
+      chain.setStream (&memStream);
+      chain.flush (&nbw);
+      chain.setStream (tmpStream);
+      memStream.read (td->buffer->getBuffer (),
+                      td->buffer->getRealLength (), &nbr);
+
+      ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                      nbr, directChain, useChunks);
+      chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+    }
+
+  return ret;
 }

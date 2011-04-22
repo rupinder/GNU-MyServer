@@ -346,7 +346,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                   td->auxiliaryBuffer->getBuffer (),
                                                   nBytesRead,
-                                                  &chain,
+                                                  chain,
                                                   useChunks);
     }
 
@@ -473,7 +473,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, FiltersChain &chai
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                td->auxiliaryBuffer->getBuffer () + headerSize,
                                                     headerOffset - headerSize,
-                                                    &chain,
+                                                    chain,
                                                     useChunks);
     }
 

@@ -425,25 +425,9 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     chain.setStream (td->connection->socket);
 
-    /*
-      Flush initial data.  This is data that filters could have added
-      and we have to send before the file itself, for example the gzip
-      filter add a header to file.
-    */
-    if (memStream.availableToRead ())
-      {
-        memStream.read (td->buffer->getBuffer (),
-                        td->buffer->getRealLength (), &nbr);
 
-        memStream.refresh ();
-        if (nbr)
-          {
-            FiltersChain directChain (chain.getStream ());
-            td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
-                                                    td->buffer->getBuffer (),
-                                                    nbr, &directChain, useChunks);
-          }
-      } /* memStream.availableToRead ().  */
+    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain,
+                                                        useChunks);
 
     /* Flush the rest of the file.  */
     for (;;)
@@ -452,7 +436,9 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         size_t nbw;
 
         /* Check if there are other bytes to send.  */
-        if (bytesToSend)
+        if (! bytesToSend)
+          break;
+        else
           {
             /* Read from the file the bytes to send.  */
             size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
@@ -467,44 +453,13 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             bytesToSend -= nbr;
 
             td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, &chain, useChunks,
+                                                     nbr, chain, useChunks,
                                                      td->buffer->getRealLength (),
-                                                     &memStream);
+                                                     memStream);
           }
-        else /* if (bytesToSend) */
-          {
-            /* If we don't use chunks we can flush directly.  */
-            if (!useChunks)
-              {
-                chain.flush (&nbw);
-                td->sentData += nbw;
-                break;
-              }
-            else
-              {
-                /*
-                  Replace the final stream before the flush and write to a
-                  memory buffer, after all the data is flushed from the
-                  chain we can replace the stream with the original one and
-                  write there the HTTP data chunk.
-                */
-                Stream* tmpStream = chain.getStream ();
-                FiltersChain directChain (tmpStream);
-                memStream.refresh ();
-                chain.setStream (&memStream);
-                chain.flush (&nbw);
-                chain.setStream (tmpStream);
-                memStream.read (td->buffer->getBuffer (),
-                                td->buffer->getRealLength (), &nbr);
-
-                td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                         nbr, &directChain, useChunks);
-                chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
-                break;
-              }
-          }
-        memStream.refresh ();
       }/* End for loop.  */
+
+    td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
 
     file->close ();
     delete file;

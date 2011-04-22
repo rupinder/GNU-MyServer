@@ -623,7 +623,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                             con->td->buffer->getBuffer (),
                                             con->td->buffer->getLength (),
-                                            chain, con->useChunks);
+                                            *chain, con->useChunks);
 
   con->td->sentData += nbw;
   return 0;
@@ -710,7 +710,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
       size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
                                                 con->td->buffer->getBuffer () + headerSize,
                                                 size - headerSize,
-                                                chain,
+                                                *chain,
                                                 con->useChunks);
       con->td->sentData += nbw;
     }

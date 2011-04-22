@@ -310,7 +310,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
               td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                        td->buffer->getBuffer (),
-                                                       nbr, out, useChunks);
+                                                       nbr, *out, useChunks);
             }
         }
     }
@@ -340,7 +340,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
             length -= nbr;
 
           td->sentData += HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                    nbr, out, useChunks);
+                                                    nbr, *out, useChunks);
           if (timedOut || contentLength && length == 0)
             break;
         }

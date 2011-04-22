@@ -438,7 +438,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                            td->auxiliaryBuffer->getLength (),
-                                           &chain, useChunks);
+                                           chain, useChunks);
 
       filename = directory;
       td->auxiliaryBuffer->setLength (0);
@@ -453,7 +453,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                            td->auxiliaryBuffer->getLength (),
-                                           &chain, useChunks);
+                                           chain, useChunks);
 
       fd.findfirst (filename.c_str ());
 
@@ -468,7 +468,7 @@ int HttpDir::send (HttpThreadContext* td,
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                td->auxiliaryBuffer->getLength (),
-                                               &chain, useChunks);
+                                               chain, useChunks);
       td->auxiliaryBuffer->setLength (0);
 
       if (FilesUtility::getPathRecursionLevel (td->request.uri) >= 1)
@@ -504,7 +504,7 @@ int HttpDir::send (HttpThreadContext* td,
 
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                    td->auxiliaryBuffer->getLength (),
-                                                   &chain, useChunks);
+                                                   chain, useChunks);
         }
 
       /* Put all files in a vector.  */
@@ -565,7 +565,7 @@ int HttpDir::send (HttpThreadContext* td,
           generateElement (*td->auxiliaryBuffer, file, linkPrefix, formatString);
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                    td->auxiliaryBuffer->getLength (),
-                                                   &chain, useChunks);
+                                                   chain, useChunks);
         }
 
       td->auxiliaryBuffer->setLength (0);
@@ -589,7 +589,7 @@ int HttpDir::send (HttpThreadContext* td,
       *td->auxiliaryBuffer << "</address>\r\n</body>\r\n</html>\r\n";
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
                                                td->auxiliaryBuffer->getLength (),
-                                               &chain, useChunks);
+                                               chain, useChunks);
 
       *td->auxiliaryBuffer << end_str;
       /* Changes the \ character in the / character.  */
