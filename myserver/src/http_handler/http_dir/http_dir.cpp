@@ -380,7 +380,7 @@ int HttpDir::send (HttpThreadContext* td,
             }
         }
 
-      checkDataChunks (td);
+      chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *td->connection->socket,
                                *td->buffer, td);
 

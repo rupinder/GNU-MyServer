@@ -255,7 +255,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                                 &td->response,
                                                 &(td->nBytesToRead));
 
-  checkDataChunks (td);
+  chooseEncoding (td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
                            *td->auxiliaryBuffer, td);
 

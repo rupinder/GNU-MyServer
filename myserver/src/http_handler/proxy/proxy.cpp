@@ -214,7 +214,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   /* At this point we can modify the response struct before send it to the
      client.  */
 
-  checkDataChunks (td, td->response.contentLength.length ());
+  chooseEncoding (td, td->response.contentLength.length ());
   HttpHeaders::sendHeader (td->response, *out.getStream (), *td->buffer, td);
 
   if (onlyHeader)

@@ -293,7 +293,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
 
       HttpHeaders::buildHTTPResponseHeaderStruct (buffer, &td->response, &(td->nBytesToRead));
 
-      checkDataChunks (td);
+      chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                *td->buffer, td);
 

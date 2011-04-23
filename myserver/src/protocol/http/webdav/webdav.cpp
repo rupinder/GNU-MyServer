@@ -303,7 +303,7 @@ int WebDAV::propfind (HttpThreadContext* td)
 
       td->response.httpStatus = 207;
 
-      HttpDataHandler::checkDataChunks (td);
+      HttpDataHandler::chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       /* Determine the Depth.  */
@@ -617,7 +617,7 @@ int WebDAV::lock (HttpThreadContext* td)
 
       td->response.httpStatus = 201;
 
-      HttpDataHandler::checkDataChunks (td);
+      HttpDataHandler::chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       string lc = "http://" + *td->request.getValue ("Host", NULL) + td->request.uri;

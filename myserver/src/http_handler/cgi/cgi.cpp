@@ -451,7 +451,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
               return 1;
             }
 
-          checkDataChunks (td);
+          chooseEncoding (td);
           HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                    *td->buffer, td);
         }

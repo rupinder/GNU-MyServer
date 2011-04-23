@@ -157,11 +157,13 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
 }
 
 /*!
-  Check if the server can use the chunked transfer encoding and if the client
-  supports keep-alive connections.
+  Choose the transfer encoding to use with the client.
+  \param td The HTTP thread context.
+  \param disableEncoding If specified don't use any transfer encoding.
+  If it is specified, then the Content-Length must be specified.
  */
 void
-HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool disableEncoding)
+HttpDataHandler::chooseEncoding (HttpThreadContext* td, bool disableEncoding)
 {
   td->keepalive = td->request.isKeepAlive ();
   td->useChunks = false;

@@ -52,7 +52,7 @@ public:
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void checkDataChunks (HttpThreadContext* td,
+  static void chooseEncoding (HttpThreadContext* td,
                                bool disableEncoding = false);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,

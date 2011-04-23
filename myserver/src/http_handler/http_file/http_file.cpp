@@ -323,7 +323,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         td->response.contentLength.assign (buffer.str ());
       }
 
-    checkDataChunks (td, fastCopyAllowed);
+    chooseEncoding (td, fastCopyAllowed);
     HttpHeaders::sendHeader (td->response, *td->connection->socket,
                              *td->buffer, td);
 

@@ -270,7 +270,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
             (ConnInfo->td->buffer->getBuffer (), &ConnInfo->td->response,
              &(ConnInfo->td->nBytesToRead));
 
-          HttpDataHandler::checkDataChunks (ConnInfo->td);
+          HttpDataHandler::chooseEncoding (ConnInfo->td);
           if (HttpHeaders::sendHeader (ConnInfo->td->response,
                                        *ConnInfo->td->connection->socket,
                                        *ConnInfo->td->auxiliaryBuffer,

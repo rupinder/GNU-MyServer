@@ -689,7 +689,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
         }
     }
 
-  checkDataChunks (con->td);
+  chooseEncoding (con->td);
   if (HttpHeaders::sendHeader (con->td->response, *con->td->connection->socket,
                                *con->td->auxiliaryBuffer, con->td))
     {

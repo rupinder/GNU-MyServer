@@ -157,7 +157,6 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
   if (mcd->error)
     return 1;
 
-  checkDataChunks (mcd->td);
   if (!mcd->headerSent && sendHeader (mcd))
     return 1;
 
@@ -184,6 +183,7 @@ int MsCgi::sendHeader (MsCgiData* mcd)
   if (mcd->headerSent)
     return 0;
 
+  chooseEncoding (mcd->td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
                            *td->auxiliaryBuffer, td);
 
