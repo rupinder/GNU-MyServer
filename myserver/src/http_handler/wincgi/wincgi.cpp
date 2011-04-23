@@ -332,7 +332,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain);
 
       chain.clearAllFilters ();
       OutFileHandle.close ();

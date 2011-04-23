@@ -361,8 +361,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     file->seek (firstByte);
 
-    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain,
-                                                        td->useChunks);
+    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain);
 
     /* Flush the rest of the file.  */
     for (;;)
@@ -393,7 +392,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
           }
       }/* End for loop.  */
 
-    td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
+    td->sentData += completeHTTPResponse (td, memStream, chain);
 
     file->close ();
     delete file;

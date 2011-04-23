@@ -132,7 +132,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;

@@ -333,7 +333,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
     }
 
   MemoryStream memStream (td->auxiliaryBuffer);
-  td->sentData += completeHTTPResponse (td, memStream, *out, useChunks);
+  td->sentData += completeHTTPResponse (td, memStream, *out);
 
   return HttpDataHandler::RET_OK;
 }

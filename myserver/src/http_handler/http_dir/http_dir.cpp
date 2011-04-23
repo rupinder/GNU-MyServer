@@ -596,7 +596,7 @@ int HttpDir::send (HttpThreadContext* td,
           *bufferloop = '/';
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain);
     }
   catch (exception & e)
     {

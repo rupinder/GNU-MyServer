@@ -69,13 +69,11 @@ public:
 
   static size_t beginHTTPResponse (HttpThreadContext *td,
                                    MemoryStream &memStream,
-                                   FiltersChain &chain,
-                                   bool useChunks);
+                                   FiltersChain &chain);
 
   static size_t completeHTTPResponse (HttpThreadContext *td,
                                       MemoryStream &memStream,
-                                      FiltersChain &chain,
-                                      bool useChunks);
+                                      FiltersChain &chain);
 
   static size_t generateFiltersChain (HttpThreadContext *td,
                                       FiltersFactory *factory,

@@ -284,8 +284,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       while (! exit);
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain,
-                                            con.td->useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain);
 
       chain.clearAllFilters ();
       con.sock.close ();

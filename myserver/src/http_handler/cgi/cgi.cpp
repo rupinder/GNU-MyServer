@@ -345,7 +345,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
     }
 
   MemoryStream memStream (td->auxiliaryBuffer);
-  td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
+  td->sentData += completeHTTPResponse (td, memStream, chain);
 
   return HttpDataHandler::RET_OK;
 }

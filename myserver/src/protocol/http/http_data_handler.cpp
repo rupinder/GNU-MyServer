@@ -181,8 +181,7 @@ HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool disableEncoding)
 size_t
 HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
                                     MemoryStream &memStream,
-                                    FiltersChain &chain,
-                                    bool useChunks)
+                                    FiltersChain &chain)
 {
   size_t ret = 0;
   /*
@@ -214,12 +213,11 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
 size_t
 HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
                                        MemoryStream &memStream,
-                                       FiltersChain &chain,
-                                       bool useChunks)
+                                       FiltersChain &chain)
 {
   size_t ret = 0;
   /* If we don't use chunks we can flush directly.  */
-  if (! useChunks)
+  if (! td->useChunks)
     chain.flush (&ret);
   else
     {

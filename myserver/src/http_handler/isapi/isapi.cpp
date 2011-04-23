@@ -825,8 +825,7 @@ int Isapi::send (HttpThreadContext* td,
 
       MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += completeHTTPResponse (td, memStream,
-                                            connTable[connIndex].chain,
-                                            connTable[connIndex].td->useChunks);
+                                            connTable[connIndex].chain);
 
       switch (ret)
         {
