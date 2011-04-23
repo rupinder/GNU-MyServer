@@ -265,7 +265,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
   if (read - headerSize)
     td->sentData +=
       appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
-                             read - headerSize, *chain, td->useChunks);
+                               read - headerSize, *chain);
 
   if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
     {
@@ -280,7 +280,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
 
           td->sentData +=
             appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                     nbr, *chain, td->useChunks);
+                                     nbr, *chain);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);

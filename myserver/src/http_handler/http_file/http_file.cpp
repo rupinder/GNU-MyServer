@@ -387,7 +387,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             bytesToSend -= nbr;
 
             td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, chain, td->useChunks,
+                                                     nbr, chain,
                                                      td->buffer->getRealLength (),
                                                      memStream);
           }

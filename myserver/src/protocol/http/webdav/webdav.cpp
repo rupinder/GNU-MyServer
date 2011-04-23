@@ -333,7 +333,7 @@ int WebDAV::propfind (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain, td->useChunks);
+                                                      nbr, chain);
           if (nbr != td->buffer->getRealLength ())
             break;
         }
@@ -641,7 +641,7 @@ int WebDAV::lock (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain, td->useChunks);
+                                                      nbr, chain);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);

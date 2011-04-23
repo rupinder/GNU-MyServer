@@ -167,8 +167,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
   mcd->td->sentData +=
     HttpDataHandler::appendDataToHTTPChannel (mcd->td,
                                               data, len,
-                                              *mcd->filtersChain,
-                                              mcd->td->useChunks);
+                                              *mcd->filtersChain);
   return 0;
 }
 

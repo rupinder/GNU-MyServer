@@ -292,8 +292,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
               HttpDataHandler::appendDataToHTTPChannel (ConnInfo->td,
                                                         buffer + headerSize,
                                                         len,
-                                                        ConnInfo->chain,
-                                                        ConnInfo->td->useChunks);
+                                                        ConnInfo->chain);
           ConnInfo->td->sentData += written;
 
           *lpdwBytes = written;
@@ -305,8 +304,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
         HttpDataHandler::appendDataToHTTPChannel (ConnInfo->td,
                                                   (const char *) Buffer,
                                                   *lpdwBytes,
-                                                  ConnInfo->chain,
-                                                  ConnInfo->td->useChunks);
+                                                  ConnInfo->chain);
       ConnInfo->td->sentData += written;
       *lpdwBytes = written;
     }

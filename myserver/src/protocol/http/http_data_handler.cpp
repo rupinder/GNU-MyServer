@@ -68,7 +68,6 @@ int HttpDataHandler::unLoad ()
   \param buffer Data to send.
   \param size Size of the buffer.
   \param chain Where send data if not append.
-  \param useChunks Can we use HTTP chunks to send data?
   \param realBufferSize The real dimension of the buffer that can be
   used by this method.
   \param tmpStream A support on memory read/write stream used
@@ -78,7 +77,6 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                                  const char *buffer,
                                                  size_t size,
                                                  FiltersChain &chain,
-                                                 bool useChunks,
                                                  size_t realBufferSize,
                                                  MemoryStream &tmpStream)
 {
@@ -87,7 +85,7 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   Stream *oldStream = chain.getStream ();
 
   if (! chain.hasModifiersFilters () || size == 0)
-    return appendDataToHTTPChannel (td, buffer, size, chain, useChunks);
+    return appendDataToHTTPChannel (td, buffer, size, chain);
 
   /*
     This function can't append directly to the chain because we can't
@@ -111,8 +109,7 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
 
           tmpStream.read (tmpBuf, BUFSIZ, &nbr);
           if (nbr)
-            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, directStream,
-                                                 useChunks);
+            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, directStream);
         }
       while (size - written || nbr);
       tmpStream.refresh ();
@@ -133,18 +130,16 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   \param buffer Data to send.
   \param size Size of the buffer.
   \param chain Where send data if not append.
-  \param useChunks Can we use HTTP chunks to send data?
  */
 size_t
 HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                           const char *buffer,
                                           size_t size,
-                                          FiltersChain &chain,
-                                          bool useChunks)
+                                          FiltersChain &chain)
 {
   size_t tmp, nbw = 0;
 
-  if (useChunks)
+  if (td->useChunks)
     {
       ostringstream chunkHeader;
       chunkHeader << hex << size << "\r\n";
@@ -155,7 +150,7 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   if (size)
     chain.write (buffer, size, &nbw);
 
-  if (useChunks)
+  if (td->useChunks)
     chain.getStream ()->write ("\r\n", 2, &tmp);
 
   return nbw;
@@ -206,7 +201,7 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
         {
           FiltersChain directChain (chain.getStream ());
           ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (), nbr,
-                                          directChain, useChunks);
+                                          directChain);
         }
     }
 
@@ -245,7 +240,7 @@ HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
                       td->buffer->getRealLength (), &nbr);
 
       ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                      nbr, directChain, useChunks);
+                                      nbr, directChain);
       chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
     }
 

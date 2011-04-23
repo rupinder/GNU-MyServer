@@ -59,15 +59,13 @@ public:
                                          const char *buffer,
                                          size_t size,
                                          FiltersChain &chain,
-                                         bool useChunks,
                                          size_t realBufferSize,
                                          MemoryStream &tmpStream);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,
                                          size_t size,
-                                         FiltersChain &chain,
-                                         bool useChunks);
+                                         FiltersChain &chain);
 
   static size_t beginHTTPResponse (HttpThreadContext *td,
                                    MemoryStream &memStream,

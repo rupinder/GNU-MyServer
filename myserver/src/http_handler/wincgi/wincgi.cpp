@@ -309,7 +309,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                                 buffer + headerSize,
                                                                 nBytesRead - headerSize,
-                                                                chain, td->useChunks);
+                                                                chain);
 
 
       if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
@@ -324,8 +324,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
 
               td->sentData +=
                 HttpDataHandler::appendDataToHTTPChannel (td, buffer,
-                                                          nBytesRead, chain,
-                                                          td->useChunks);
+                                                          nBytesRead, chain);
 
               td->sentData += nbw;
             }
