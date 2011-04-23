@@ -166,28 +166,17 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   supports keep-alive connections.
  */
 void
-HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool* keepalive,
-                                  bool* useChunks, bool disableEncoding)
+HttpDataHandler::checkDataChunks (HttpThreadContext* td, bool disableEncoding)
 {
-  *keepalive = td->request.isKeepAlive ();
-  *useChunks = false;
+  td->keepalive = td->request.isKeepAlive ();
+  td->useChunks = false;
 
-  *keepalive &= !td->request.ver.compare ("HTTP/1.1");
+  td->keepalive &= !td->request.ver.compare ("HTTP/1.1");
 
-  if (!disableEncoding && *keepalive)
+  if (!disableEncoding && td->keepalive)
     {
-      HttpResponseHeader::Entry *e;
-      e = td->response.other.get ("transfer-encoding");
-      if (e)
-        e->value.assign ("chunked");
-      else
-        {
-          e = new HttpResponseHeader::Entry ();
-          e->name.assign ("transfer-encoding");
-          e->value.assign ("chunked");
-          td->response.other.put (e->name, e);
-        }
-      *useChunks = true;
+      td->response.setValue ("transfer-encoding", "chunked");
+      td->useChunks = true;
     }
 }
 

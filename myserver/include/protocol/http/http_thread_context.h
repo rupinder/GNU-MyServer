@@ -62,6 +62,10 @@ struct HttpThreadContext
   /*! Size of the request header in `buffer'. */
   size_t headerSize;
 
+  bool useChunks;
+
+  bool keepalive;
+
   ConnectionPtr connection;
   MemBuf *buffer;
   MemBuf *auxiliaryBuffer;

@@ -142,12 +142,9 @@ typedef ProcessServerManager::Server FastCgiServer;
 
 struct FcgiContext
 {
-  HttpThreadContext* td;
-  FastCgiServer* server;
+  HttpThreadContext *td;
+  FastCgiServer *server;
   Socket sock;
-
-  bool useChunks;
-  bool keepalive;
   bool headerSent;
 };
 

@@ -285,7 +285,6 @@ int WebDAV::propfind (HttpThreadContext* td)
 
   try
     {
-      bool keepalive, useChunks;
       size_t nbw, nbw2;
       FiltersChain chain;
       list<string> filters;
@@ -304,7 +303,7 @@ int WebDAV::propfind (HttpThreadContext* td)
 
       td->response.httpStatus = 207;
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
+      HttpDataHandler::checkDataChunks (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       /* Determine the Depth.  */
@@ -334,14 +333,14 @@ int WebDAV::propfind (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain, useChunks);
+                                                      nbr, chain, td->useChunks);
           if (nbr != td->buffer->getRealLength ())
             break;
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream,
-                                                             chain, useChunks);
+                                                             chain, td->useChunks);
 
       return HttpDataHandler::RET_OK;
     }
@@ -577,7 +576,6 @@ int WebDAV::lock (HttpThreadContext* td)
     {
       Sha1 sha1;
       vector <const char*> propReq;
-      bool keepalive, useChunks;
       size_t nbw, nbw2;
       FiltersChain chain;
       list<string> filters;
@@ -619,7 +617,7 @@ int WebDAV::lock (HttpThreadContext* td)
 
       td->response.httpStatus = 201;
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
+      HttpDataHandler::checkDataChunks (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       string lc = "http://" + *td->request.getValue ("Host", NULL) + td->request.uri;
@@ -643,11 +641,12 @@ int WebDAV::lock (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain, useChunks);
+                                                      nbr, chain, td->useChunks);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream, chain,
+                                                             td->useChunks);
 
       return HttpDataHandler::RET_OK;
     }

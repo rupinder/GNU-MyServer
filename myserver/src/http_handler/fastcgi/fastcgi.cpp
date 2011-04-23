@@ -284,7 +284,8 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       while (! exit);
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, con.useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain,
+                                            con.td->useChunks);
 
       chain.clearAllFilters ();
       con.sock.close ();
@@ -615,12 +616,11 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   if (onlyHeader)
     return 1;
 
-  size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
-                                            con->td->buffer->getBuffer (),
-                                            con->td->buffer->getLength (),
-                                            *chain, con->useChunks);
-
-  con->td->sentData += nbw;
+  con->td->sentData +=
+    HttpDataHandler::appendDataToHTTPChannel (con->td,
+                                              con->td->buffer->getBuffer (),
+                                              con->td->buffer->getLength (),
+                                              *chain, con->td->useChunks);
   return 0;
 }
 
@@ -690,7 +690,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
         }
     }
 
-  checkDataChunks (con->td, &con->keepalive, &con->useChunks);
+  checkDataChunks (con->td);
   if (HttpHeaders::sendHeader (con->td->response, *con->td->connection->socket,
                                *con->td->auxiliaryBuffer, con->td))
     {
@@ -707,7 +707,7 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
                                                 con->td->buffer->getBuffer () + headerSize,
                                                 size - headerSize,
                                                 *chain,
-                                                con->useChunks);
+                                                con->td->useChunks);
       con->td->sentData += nbw;
     }
 

@@ -291,14 +291,13 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
   size_t nBytesRead = 0;
   u_long procStartTime;
   int ret = 0;
-  bool useChunks;
   /* Reset the auxiliaryBuffer length counter. */
   td->auxiliaryBuffer->setLength (0);
 
   procStartTime = getTicks ();
 
   if (sendHeader (td, stdOutFile, chain, cgiProc, onlyHeader, nph,
-                  procStartTime, &useChunks, &ret))
+                  procStartTime, &td->useChunks, &ret))
     return ret;
 
   if (!nph && onlyHeader)
@@ -343,11 +342,11 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
                                                   td->auxiliaryBuffer->getBuffer (),
                                                   nBytesRead,
                                                   chain,
-                                                  useChunks);
+                                                  td->useChunks);
     }
 
   MemoryStream memStream (td->auxiliaryBuffer);
-  td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
+  td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
 
   return HttpDataHandler::RET_OK;
 }
@@ -443,8 +442,6 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
                                                     &td->response,
                                                     &(td->nBytesToRead));
         {
-          bool keepalive = false;
-
           string* location = td->response.getValue ("Location", NULL);
 
           /* If it is present "Location: foo" in the header then send a redirect
@@ -455,7 +452,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
               return 1;
             }
 
-          checkDataChunks (td, &keepalive, useChunks);
+          checkDataChunks (td);
           HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                    *td->buffer, td);
         }
@@ -468,7 +465,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
                                td->auxiliaryBuffer->getBuffer () + headerSize,
                                                     headerOffset - headerSize,
                                                     chain,
-                                                    useChunks);
+                                                    td->useChunks);
     }
 
   return 0;

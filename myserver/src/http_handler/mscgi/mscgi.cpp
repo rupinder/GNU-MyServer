@@ -69,7 +69,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
   data.errorPage = 0;
   data.server = Server::getInstance ();
   data.mscgi = this;
-  data.useChunks = false;
   data.onlyHeader = onlyHeader;
   data.error = false;
   data.filtersChain = &chain;
@@ -133,7 +132,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, data.useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
@@ -158,7 +157,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
   if (mcd->error)
     return 1;
 
-  checkDataChunks (mcd->td, &mcd->keepAlive, &mcd->useChunks);
+  checkDataChunks (mcd->td);
   if (!mcd->headerSent && sendHeader (mcd))
     return 1;
 
@@ -169,7 +168,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
     HttpDataHandler::appendDataToHTTPChannel (mcd->td,
                                               data, len,
                                               *mcd->filtersChain,
-                                              mcd->useChunks);
+                                              mcd->td->useChunks);
   return 0;
 }
 

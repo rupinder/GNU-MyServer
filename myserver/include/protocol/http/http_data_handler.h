@@ -52,8 +52,8 @@ public:
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void checkDataChunks (HttpThreadContext* td, bool* keepalive,
-                               bool* useChunks, bool disableEncoding = false);
+  static void checkDataChunks (HttpThreadContext* td,
+                               bool disableEncoding = false);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,

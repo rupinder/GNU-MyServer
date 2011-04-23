@@ -270,8 +270,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
             (ConnInfo->td->buffer->getBuffer (), &ConnInfo->td->response,
              &(ConnInfo->td->nBytesToRead));
 
-          HttpDataHandler::checkDataChunks (ConnInfo->td, &ConnInfo->keepalive,
-                                            &ConnInfo->useChunks);
+          HttpDataHandler::checkDataChunks (ConnInfo->td);
           if (HttpHeaders::sendHeader (ConnInfo->td->response,
                                        *ConnInfo->td->connection->socket,
                                        *ConnInfo->td->auxiliaryBuffer,
@@ -294,7 +293,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
                                                         buffer + headerSize,
                                                         len,
                                                         ConnInfo->chain,
-                                                        ConnInfo->useChunks);
+                                                        ConnInfo->td->useChunks);
           ConnInfo->td->sentData += written;
 
           *lpdwBytes = written;
@@ -307,7 +306,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
                                                   (const char *) Buffer,
                                                   *lpdwBytes,
                                                   ConnInfo->chain,
-                                                  ConnInfo->useChunks);
+                                                  ConnInfo->td->useChunks);
       ConnInfo->td->sentData += written;
       *lpdwBytes = written;
     }
@@ -829,7 +828,7 @@ int Isapi::send (HttpThreadContext* td,
       MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += completeHTTPResponse (td, memStream,
                                             connTable[connIndex].chain,
-                                            connTable[connIndex].useChunks);
+                                            connTable[connIndex].td->useChunks);
 
       switch (ret)
         {

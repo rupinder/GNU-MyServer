@@ -42,8 +42,6 @@ struct MsCgiData
   Server* server;
   MsCgi* mscgi;
   FiltersChain *filtersChain;
-  bool keepAlive;
-  bool useChunks;
   bool onlyHeader;
   bool error;
 

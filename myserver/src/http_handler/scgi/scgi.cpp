@@ -210,8 +210,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
 int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
 {
   clock_t initialTicks = getTicks ();
-  bool useChunks = false;
-  bool keepalive = false;
   u_long read = 0;
   u_long headerSize = 0;
   u_long tmpHeaderSize = 0;
@@ -257,7 +255,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                                 &td->response,
                                                 &(td->nBytesToRead));
 
-  checkDataChunks (td, &keepalive, &useChunks);
+  checkDataChunks (td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
                            *td->auxiliaryBuffer, td);
 
@@ -267,7 +265,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
   if (read - headerSize)
     td->sentData +=
       appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
-                             read - headerSize, *chain, useChunks);
+                             read - headerSize, *chain, td->useChunks);
 
   if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
     {
@@ -282,11 +280,12 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
 
           td->sentData +=
             appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                     nbr, *chain, useChunks);
+                                     nbr, *chain, td->useChunks);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, *chain, useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, *chain,
+                                            td->useChunks);
     }
 
   return HttpDataHandler::RET_OK;

@@ -202,8 +202,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   off_t firstByte = td->request.rangeByteBegin;
   off_t lastByte = td->request.rangeByteEnd;
   bool fastCopyAllowed;
-  bool keepalive;
-  bool useChunks = false;
   MemoryStream memStream (td->auxiliaryBuffer);
   FiltersChain chain;
   size_t nbr;
@@ -325,7 +323,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         td->response.contentLength.assign (buffer.str ());
       }
 
-    checkDataChunks (td, &keepalive, &useChunks, fastCopyAllowed);
+    checkDataChunks (td, fastCopyAllowed);
     HttpHeaders::sendHeader (td->response, *td->connection->socket,
                              *td->buffer, td);
 
@@ -364,7 +362,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     file->seek (firstByte);
 
     td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain,
-                                                        useChunks);
+                                                        td->useChunks);
 
     /* Flush the rest of the file.  */
     for (;;)
@@ -389,13 +387,13 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             bytesToSend -= nbr;
 
             td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, chain, useChunks,
+                                                     nbr, chain, td->useChunks,
                                                      td->buffer->getRealLength (),
                                                      memStream);
           }
       }/* End for loop.  */
 
-    td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
+    td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
 
     file->close ();
     delete file;

@@ -65,7 +65,6 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
                   const char *cgipath, bool /*execute*/, bool onlyHeader)
 {
 #ifdef WIN32
-  bool keepalive, useChunks;
   FiltersChain chain;
   Process proc;
   size_t nbr;
@@ -292,12 +291,9 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
             }
         }
 
-      if (td->request.isKeepAlive ())
-        td->response.setValue ("connection", "keep-alive");
-
       HttpHeaders::buildHTTPResponseHeaderStruct (buffer, &td->response, &(td->nBytesToRead));
 
-      checkDataChunks (td, &keepalive, &useChunks);
+      checkDataChunks (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (),
                                *td->buffer, td);
 
@@ -313,7 +309,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                                 buffer + headerSize,
                                                                 nBytesRead - headerSize,
-                                                                chain, useChunks);
+                                                                chain, td->useChunks);
 
 
       if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
@@ -329,7 +325,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
               td->sentData +=
                 HttpDataHandler::appendDataToHTTPChannel (td, buffer,
                                                           nBytesRead, chain,
-                                                          useChunks);
+                                                          td->useChunks);
 
               td->sentData += nbw;
             }
@@ -337,7 +333,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
+      td->sentData += completeHTTPResponse (td, memStream, chain, td->useChunks);
 
       chain.clearAllFilters ();
       OutFileHandle.close ();

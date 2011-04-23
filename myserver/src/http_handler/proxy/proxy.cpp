@@ -166,8 +166,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   size_t headerLength;
   int ret;
   size_t nbw;
-  bool useChunks = false;
-  bool keepalive = false;
 
   td->response.free ();
   do
@@ -216,8 +214,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   /* At this point we can modify the response struct before send it to the
      client.  */
 
-  checkDataChunks (td, &keepalive, &useChunks,
-                   td->response.contentLength.length ());
+  checkDataChunks (td, td->response.contentLength.length ());
   HttpHeaders::sendHeader (td->response, *out.getStream (), *td->buffer, td);
 
   if (onlyHeader)
@@ -226,7 +223,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   readPayLoad (td, &td->response, &out, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,
                read - headerLength, td->http->getTimeout (),
-               useChunks, keepalive,
+               td->useChunks, td->keepalive,
                hasTransferEncoding ? &transferEncoding : NULL);
 
   td->sentData += ret;
