@@ -646,8 +646,8 @@ int WebDAV::lock (HttpThreadContext* td)
                                                       nbr, chain, useChunks);
         }
 
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += completeHTTPResponse (td, memStream, chain, useChunks);
 
       return HttpDataHandler::RET_OK;
     }
