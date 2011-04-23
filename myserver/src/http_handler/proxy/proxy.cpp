@@ -223,7 +223,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   readPayLoad (td, &td->response, &out, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,
                read - headerLength, td->http->getTimeout (),
-               td->useChunks, td->keepalive,
                hasTransferEncoding ? &transferEncoding : NULL);
 
   td->sentData += ret;
@@ -239,9 +238,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   \param initBuffer Initial read data.
   \param initBufferSize Size of initial data.
   \param timeout Connection timeout.
-  \param useChunks Use chunked transfer encoding
   with the client.
-  \param keepalive The connection is keep-alive.
   \param serverTransferEncoding Transfer-encoding
   used by the server.
 
@@ -255,8 +252,6 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                         const char *initBuffer,
                         u_long initBufferSize,
                         int timeout,
-                        bool useChunks,
-                        bool keepalive,
                         string *serverTransferEncoding)
 {
   size_t contentLength = 0;

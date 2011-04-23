@@ -297,7 +297,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
   procStartTime = getTicks ();
 
   if (sendHeader (td, stdOutFile, chain, cgiProc, onlyHeader, nph,
-                  procStartTime, &td->useChunks, &ret))
+                  procStartTime, &ret))
     return ret;
 
   if (!nph && onlyHeader)
@@ -356,7 +356,7 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
  */
 int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
                      FiltersChain &chain, Process &cgiProc, bool onlyHeader,
-                     bool nph, u_long procStartTime, bool *useChunks, int *ret)
+                     bool nph, u_long procStartTime, int *ret)
 {
   u_long headerSize = 0;
   bool headerCompleted = false;
