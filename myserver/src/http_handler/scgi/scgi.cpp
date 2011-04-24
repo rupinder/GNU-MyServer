@@ -45,7 +45,7 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
                const char *cgipath, bool execute, bool onlyHeader)
 {
   ScgiContext con;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
 
   string outDataPath;
 
@@ -166,7 +166,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
       if (sizeEnvString == -1)
         {
           td->connection->host->warningsLogWrite (_("SCGI: internal error"));
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -179,7 +178,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
           td->connection->host->warningsLogWrite
             (_E ("SCGI: error connecting to the process %s"),
              cmdLine.str ().c_str (), &e);
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -188,15 +186,13 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
           && !td->request.contentLength.compare ("0"))
         sendPostData (&con);
 
-      sendResponse (&con, onlyHeader, &chain);
+      sendResponse (&con, onlyHeader);
 
-      chain.clearAllFilters ();
       con.tempOut.close ();
       con.sock.close ();
     }
   catch (exception & e)
     {
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
@@ -207,7 +203,7 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
 /*!
   Send the response to the client.
  */
-int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
+int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader)
 {
   clock_t initialTicks = getTicks ();
   u_long read = 0;
@@ -265,7 +261,7 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
   if (read - headerSize)
     td->sentData +=
       appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
-                               read - headerSize, *chain);
+                               read - headerSize);
 
   if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
     {
@@ -280,11 +276,11 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
 
           td->sentData +=
             appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                     nbr, *chain);
+                                     nbr);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, *chain);
+      td->sentData += completeHTTPResponse (td, memStream);
     }
 
   return HttpDataHandler::RET_OK;

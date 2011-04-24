@@ -63,7 +63,7 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
   bool nph = false;
   ostringstream cmdLine;
 
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   Process cgiProc;
 
   StartProcInfo spi;
@@ -339,13 +339,12 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
 
       if (nBytesRead)
         td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
-                                                  td->auxiliaryBuffer->getBuffer (),
-                                                  nBytesRead,
-                                                  chain);
+                                           td->auxiliaryBuffer->getBuffer (),
+                                                          nBytesRead);
     }
 
   MemoryStream memStream (td->auxiliaryBuffer);
-  td->sentData += completeHTTPResponse (td, memStream, chain);
+  td->sentData += completeHTTPResponse (td, memStream);
 
   return HttpDataHandler::RET_OK;
 }
@@ -462,8 +461,7 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
       /* Flush the buffer.  Data from the header parsing can be present.  */
       td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                td->auxiliaryBuffer->getBuffer () + headerSize,
-                                                    headerOffset - headerSize,
-                                                    chain);
+                                                   headerOffset - headerSize);
     }
 
   return 0;

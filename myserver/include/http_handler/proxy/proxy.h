@@ -53,7 +53,6 @@ protected:
                      FiltersChain &out, bool onlyHeader, bool *kaClient);
   int readPayLoad (HttpThreadContext* td,
                    HttpResponseHeader* res,
-                   FiltersChain *out,
                    Socket *client,
                    const char *initBuffer,
                    u_long initBufferSize,

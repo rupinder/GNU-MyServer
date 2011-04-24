@@ -49,7 +49,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
   Url destUrl (exec, 80);
   ConnectionPtr con = NULL;
   Socket *sock;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   HttpRequestHeader req;
   size_t nbw;
   bool keepalive = false;
@@ -220,7 +220,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
 
-  readPayLoad (td, &td->response, &out, &client,
+  readPayLoad (td, &td->response, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,
                read - headerLength, td->http->getTimeout (),
                hasTransferEncoding ? &transferEncoding : NULL);
@@ -234,7 +234,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
 
   \param td The current HTTP thread context.
   \param res Response obtained by the server.
-  \param out The client chain.
   \param initBuffer Initial read data.
   \param initBufferSize Size of initial data.
   \param timeout Connection timeout.
@@ -247,7 +246,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
  */
 int Proxy::readPayLoad (HttpThreadContext* td,
                         HttpResponseHeader* res,
-                        FiltersChain *out,
                         Socket *client,
                         const char *initBuffer,
                         u_long initBufferSize,
@@ -291,7 +289,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
               td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
                                                        td->buffer->getBuffer (),
-                                                       nbr, *out);
+                                                       nbr);
             }
         }
     }
@@ -320,15 +318,16 @@ int Proxy::readPayLoad (HttpThreadContext* td,
           if (length)
             length -= nbr;
 
-          td->sentData += HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                    nbr, *out);
+          td->sentData +=
+            HttpDataHandler::appendDataToHTTPChannel (td,
+                                             td->buffer->getBuffer (), nbr);
           if (timedOut || contentLength && length == 0)
             break;
         }
     }
 
   MemoryStream memStream (td->auxiliaryBuffer);
-  td->sentData += completeHTTPResponse (td, memStream, *out);
+  td->sentData += completeHTTPResponse (td, memStream);
 
   return HttpDataHandler::RET_OK;
 }

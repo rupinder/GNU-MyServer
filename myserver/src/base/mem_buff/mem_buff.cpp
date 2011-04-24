@@ -266,11 +266,11 @@ int MemBuf::setBuffer (const void* pAdr, size_t size)
   buffer.setExternalBuffer (stackBuffer, 10); // here, you'll use
                                               // the memory from stackBuffer.
  */
-void MemBuf::setExternalBuffer (const void* pAdr, size_t size)
+void MemBuf::setExternalBuffer (void* pAdr, size_t size)
 {
   free ();
   bCanDelete = false;
-  buffer = (char*) pAdr;
+  buffer = (char *) pAdr;
   nRealSize = size;
   nSize = 0;
 }

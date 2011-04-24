@@ -22,9 +22,10 @@
 
 # include "myserver.h"
 # include <include/protocol/protocol.h>
-# include "include/protocol/http/http_headers.h"
+# include <include/protocol/http/http_headers.h>
+# include <include/protocol/http/http_thread_context.h>
 # include <include/filter/filters_chain.h>
-#include <include/filter/filters_factory.h>
+# include <include/filter/filters_factory.h>
 # include <include/filter/memory_stream.h>
 # include <include/conf/mime/mime_manager.h>
 
@@ -45,39 +46,34 @@ public:
   virtual int load ();
   virtual int unLoad ();
 
-  virtual int send (HttpThreadContext*, const char* exec,
-                    const char* cmdLine = 0, bool execute = false,
+  virtual int send (HttpThreadContext *, const char *exec,
+                    const char *cmdLine = 0, bool execute = false,
                     bool onlyHeader = false);
 
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void chooseEncoding (HttpThreadContext* td,
+  static void chooseEncoding (HttpThreadContext *td,
                                bool disableEncoding = false);
 
-  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
+  static size_t appendDataToHTTPChannel (HttpThreadContext *td,
                                          const char *buffer,
-                                         size_t size,
-                                         FiltersChain &chain,
-                                         size_t realBufferSize,
-                                         MemoryStream &tmpStream);
+                                         size_t size);
 
   static size_t appendDataToHTTPChannel (HttpThreadContext* td,
                                          const char *buffer,
                                          size_t size,
                                          FiltersChain &chain);
 
+
   static size_t beginHTTPResponse (HttpThreadContext *td,
-                                   MemoryStream &memStream,
-                                   FiltersChain &chain);
+                                   MemoryStream &memStream);
 
   static size_t completeHTTPResponse (HttpThreadContext *td,
-                                      MemoryStream &memStream,
-                                      FiltersChain &chain);
+                                      MemoryStream &memStream);
 
   static size_t generateFiltersChain (HttpThreadContext *td,
                                       FiltersFactory *factory,
-                                      FiltersChain &fc,
                                       MimeRecord *mime,
                                       MemoryStream &memStream);
 };

@@ -286,7 +286,7 @@ int WebDAV::propfind (HttpThreadContext* td)
   try
     {
       size_t nbw, nbw2;
-      FiltersChain chain;
+      FiltersChain &chain = td->outputChain;
       list<string> filters;
       FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       vector <const char *> propReq;
@@ -333,14 +333,13 @@ int WebDAV::propfind (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain);
+                                                      nbr);
           if (nbr != td->buffer->getRealLength ())
             break;
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream,
-                                                             chain);
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream);
 
       return HttpDataHandler::RET_OK;
     }
@@ -577,7 +576,7 @@ int WebDAV::lock (HttpThreadContext* td)
       Sha1 sha1;
       vector <const char*> propReq;
       size_t nbw, nbw2;
-      FiltersChain chain;
+      FiltersChain &chain = td->outputChain;
       list<string> filters;
       FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
 
@@ -641,11 +640,11 @@ int WebDAV::lock (HttpThreadContext* td)
 
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                      nbr, chain);
+                                                      nbr);
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream, chain);
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream);
 
       return HttpDataHandler::RET_OK;
     }

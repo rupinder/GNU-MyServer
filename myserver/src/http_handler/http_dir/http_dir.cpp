@@ -323,7 +323,7 @@ int HttpDir::send (HttpThreadContext* td,
   string filename;
   int ret;
   ReadDirectory fd;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   int lastSlash = 0;
   char* bufferloop;
   const char* cssFile;
@@ -348,15 +348,13 @@ int HttpDir::send (HttpThreadContext* td,
 
 
       host = td->request.other.get ("host");
-      chain.setStream (td->connection->socket);
       if (! (td->permissions & MYSERVER_PERMISSION_BROWSE))
         return td->http->sendAuth ();
 
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw, 1);
+
+      MemoryStream memStream (td->auxiliaryBuffer);
+      generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                            td->mime, memStream);
 
       lastSlash = td->request.uri.rfind ('/') + 1;
 
@@ -375,7 +373,6 @@ int HttpDir::send (HttpThreadContext* td,
                                                         "is not valid"), ignPattern);
 
               fd.findclose ();
-              chain.clearAllFilters ();
               return td->http->raiseHTTPError (500);
             }
         }
@@ -434,8 +431,7 @@ int HttpDir::send (HttpThreadContext* td,
       *td->auxiliaryBuffer << "</head>\r\n";
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                           td->auxiliaryBuffer->getLength (),
-                                           chain);
+                                               td->auxiliaryBuffer->getLength ());
 
       filename = directory;
       td->auxiliaryBuffer->setLength (0);
@@ -449,8 +445,7 @@ int HttpDir::send (HttpThreadContext* td,
       *td->auxiliaryBuffer << "</h1>\r\n<hr />\r\n";
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                           td->auxiliaryBuffer->getLength (),
-                                           chain);
+                                           td->auxiliaryBuffer->getLength ());
 
       fd.findfirst (filename.c_str ());
 
@@ -464,8 +459,7 @@ int HttpDir::send (HttpThreadContext* td,
       generateHeader (*td->auxiliaryBuffer, sortType, sortReverse, formatString);
 
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                               td->auxiliaryBuffer->getLength (),
-                                               chain);
+                                               td->auxiliaryBuffer->getLength ());
       td->auxiliaryBuffer->setLength (0);
 
       if (FilesUtility::getPathRecursionLevel (td->request.uri) >= 1)
@@ -500,8 +494,7 @@ int HttpDir::send (HttpThreadContext* td,
           *td->auxiliaryBuffer << "</tr>\r\n";
 
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                                   td->auxiliaryBuffer->getLength (),
-                                                   chain);
+                                                   td->auxiliaryBuffer->getLength ());
         }
 
       /* Put all files in a vector.  */
@@ -561,8 +554,7 @@ int HttpDir::send (HttpThreadContext* td,
           td->auxiliaryBuffer->setLength (0);
           generateElement (*td->auxiliaryBuffer, file, linkPrefix, formatString);
           td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                                   td->auxiliaryBuffer->getLength (),
-                                                   chain);
+                                                   td->auxiliaryBuffer->getLength ());
         }
 
       td->auxiliaryBuffer->setLength (0);
@@ -585,8 +577,7 @@ int HttpDir::send (HttpThreadContext* td,
         }
       *td->auxiliaryBuffer << "</address>\r\n</body>\r\n</html>\r\n";
       td->sentData += appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                               td->auxiliaryBuffer->getLength (),
-                                               chain);
+                                               td->auxiliaryBuffer->getLength ());
 
       *td->auxiliaryBuffer << end_str;
       /* Changes the \ character in the / character.  */
@@ -595,16 +586,13 @@ int HttpDir::send (HttpThreadContext* td,
         if (*bufferloop == '\\')
           *bufferloop = '/';
 
-      MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain);
+      td->sentData += completeHTTPResponse (td, memStream);
     }
   catch (exception & e)
     {
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
-  chain.clearAllFilters ();
   return HttpDataHandler::RET_OK;
 }
 

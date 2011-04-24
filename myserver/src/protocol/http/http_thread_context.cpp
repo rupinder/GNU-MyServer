@@ -66,3 +66,8 @@ const char *HttpThreadContext::getVhostSys ()
 
   return "";
 }
+
+HttpThreadContext::~HttpThreadContext ()
+{
+  outputChain.clearAllFilters ();
+}

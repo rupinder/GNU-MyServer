@@ -203,7 +203,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   off_t lastByte = td->request.rangeByteEnd;
   bool fastCopyAllowed;
   MemoryStream memStream (td->auxiliaryBuffer);
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   size_t nbr;
   time_t lastMT;
   string tmpTime;
@@ -300,7 +300,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       }
 
     generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
-                          chain, td->mime, memStream);
+                          td->mime, memStream);
 
     fastCopyAllowed = chain.isEmpty ()
       && !(td->http->getProtocolOptions () & Protocol::SSL);
@@ -350,7 +350,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     file->seek (firstByte);
 
-    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream, chain);
+    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
     /* Flush the rest of the file.  */
     for (;;)
@@ -374,12 +374,10 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         bytesToSend -= nbr;
 
         td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                 nbr, chain,
-                                                 td->buffer->getRealLength (),
-                                                 memStream);
+                                                 nbr);
       }/* End for loop.  */
 
-    td->sentData += completeHTTPResponse (td, memStream, chain);
+    td->sentData += completeHTTPResponse (td, memStream);
 
     file->close ();
     delete file;

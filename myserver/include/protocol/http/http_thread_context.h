@@ -29,6 +29,7 @@
 # include <include/connection/connection.h>
 # include <include/conf/mime/mime_manager.h>
 # include <include/conf/security/security_token.h>
+# include <include/filter/filters_chain.h>
 
 # ifdef WIN32
 #  include <direct.h>
@@ -66,6 +67,8 @@ struct HttpThreadContext
 
   bool keepalive;
 
+  FiltersChain outputChain;
+
   ConnectionPtr connection;
   MemBuf *buffer;
   MemBuf *auxiliaryBuffer;
@@ -93,6 +96,7 @@ struct HttpThreadContext
   SecurityToken securityToken;
   int permissions;
 
+  ~HttpThreadContext ();
   const char* getVhostDir ();
   const char* getVhostSys ();
   const char* getData (const char *name);

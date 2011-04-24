@@ -67,25 +67,13 @@ int HttpDataHandler::unLoad ()
   \param td The HTTP thread context.
   \param buffer Data to send.
   \param size Size of the buffer.
-  \param chain Where send data if not append.
-  \param realBufferSize The real dimension of the buffer that can be
-  used by this method.
-  \param tmpStream A support on memory read/write stream used
-  internally by the function.
  */
 size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
                                                  const char *buffer,
-                                                 size_t size,
-                                                 FiltersChain &chain,
-                                                 size_t realBufferSize,
-                                                 MemoryStream &tmpStream)
+                                                 size_t size)
 {
-  char tmpBuf[BUFSIZ];
-  size_t nbr, nbw, written = 0, totalNbw = 0;
-  Stream *oldStream = chain.getStream ();
-
-  if (! chain.hasModifiersFilters () || size == 0)
-    return appendDataToHTTPChannel (td, buffer, size, chain);
+  if (! td->outputChain.hasModifiersFilters () || size == 0)
+    return appendDataToHTTPChannel (td, buffer, size, td->outputChain);
 
   /*
     This function can't append directly to the chain because we can't
@@ -94,29 +82,36 @@ size_t HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
     chunk content, finally we read from it and send directly to the
     original stream.
    */
+  Stream *oldStream = td->outputChain.getStream ();
+  size_t totalNbw = 0;
   try
     {
+      char tmpBuf[BUFSIZ];
+      size_t nbw;
+      MemBuf memBuf;
+      MemoryStream tmpStream (&memBuf);
       FiltersChain directStream (oldStream);
-      do
-        {
-          if (size - written)
-            {
-              chain.setStream (&tmpStream);
-              chain.write (buffer + written, size - written, &nbw);
-              chain.setStream (oldStream);
-              written += size;
-            }
+      size_t consumed = 0;
 
-          tmpStream.read (tmpBuf, BUFSIZ, &nbr);
-          if (nbr)
-            totalNbw += appendDataToHTTPChannel (td, tmpBuf, nbr, directStream);
+      memBuf.setExternalBuffer (tmpBuf, BUFSIZ);
+      while (consumed < size)
+        {
+          size_t available;
+          size_t written = std::min ((size_t) BUFSIZ / 2, size - consumed);
+          td->outputChain.setStream (&tmpStream);
+          td->outputChain.write (buffer + consumed, written, &available);
+          td->outputChain.setStream (oldStream);
+
+          totalNbw += appendDataToHTTPChannel (td, tmpBuf,
+                                               available,
+                                               directStream);
+          tmpStream.refresh ();
+          consumed += written;
         }
-      while (size - written || nbr);
-      tmpStream.refresh ();
     }
   catch (...)
     {
-      chain.setStream (oldStream);
+      td->outputChain.setStream (oldStream);
       throw;
     }
 
@@ -163,7 +158,7 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   If it is specified, then the Content-Length must be specified.
  */
 void
-HttpDataHandler::chooseEncoding (HttpThreadContext* td, bool disableEncoding)
+HttpDataHandler::chooseEncoding (HttpThreadContext *td, bool disableEncoding)
 {
   td->keepalive = td->request.isKeepAlive ();
   td->useChunks = false;
@@ -182,8 +177,7 @@ HttpDataHandler::chooseEncoding (HttpThreadContext* td, bool disableEncoding)
 */
 size_t
 HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
-                                    MemoryStream &memStream,
-                                    FiltersChain &chain)
+                                    MemoryStream &memStream)
 {
   size_t ret = 0;
   /*
@@ -200,7 +194,7 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
       memStream.refresh ();
       if (nbr)
         {
-          FiltersChain directChain (chain.getStream ());
+          FiltersChain directChain (td->outputChain.getStream ());
           ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (), nbr,
                                           directChain);
         }
@@ -214,13 +208,12 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
  */
 size_t
 HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
-                                       MemoryStream &memStream,
-                                       FiltersChain &chain)
+                                       MemoryStream &memStream)
 {
   size_t ret = 0;
   /* If we don't use chunks we can flush directly.  */
   if (! td->useChunks)
-    chain.flush (&ret);
+    td->outputChain.flush (&ret);
   else
     {
       /*
@@ -230,18 +223,19 @@ HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
         write there the HTTP data chunk.
       */
       size_t nbr, nbw;
-      Stream* tmpStream = chain.getStream ();
+      Stream* tmpStream = td->outputChain.getStream ();
       FiltersChain directChain (tmpStream);
       memStream.refresh ();
-      chain.setStream (&memStream);
-      chain.flush (&nbw);
-      chain.setStream (tmpStream);
+      td->outputChain.setStream (&memStream);
+      td->outputChain.flush (&nbw);
+      td->outputChain.setStream (tmpStream);
+
       memStream.read (td->buffer->getBuffer (),
                       td->buffer->getRealLength (), &nbr);
 
       ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
                                       nbr, directChain);
-      chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      td->outputChain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
     }
 
   return ret;
@@ -254,7 +248,6 @@ HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
 size_t
 HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
                                        FiltersFactory *factory,
-                                       FiltersChain &fc,
                                        MimeRecord *mime,
                                        MemoryStream &memStream)
 {
@@ -263,16 +256,16 @@ HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
   memStream.refresh ();
 
   if (mime)
-    factory->chain (&fc, mime->filters, &memStream, &nbw, 0, false,
-                    e ? e->value : "");
+    factory->chain (&td->outputChain, mime->filters, &memStream, &nbw, 0,
+                    false, e ? e->value : "");
 
-  if (fc.hasModifiersFilters ())
+  if (td->outputChain.hasModifiersFilters ())
     {
       string filters;
-      fc.getName (filters);
+      td->outputChain.getName (filters);
       td->response.setValue ("content-encoding", filters.c_str ());
     }
 
-  fc.setStream (td->connection->socket);
+  td->outputChain.setStream (td->connection->socket);
   return nbw;
 }

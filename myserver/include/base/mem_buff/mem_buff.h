@@ -41,7 +41,7 @@ public:
   MemBuf (MemBuf& srcBuf, int bCopy);
   ~MemBuf ();
 
-  void setExternalBuffer (const void* pAdr, size_t size);
+  void setExternalBuffer (void* pAdr, size_t size);
   int setBuffer (const void* pAdr, size_t size);
   void setLength (size_t newSize);
   void setRealLength (size_t newSize);

@@ -65,7 +65,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
                   const char *cgipath, bool /*execute*/, bool onlyHeader)
 {
 #ifdef WIN32
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   Process proc;
   size_t nbr;
   char  dataFilePath[MAX_PATH];
@@ -103,15 +103,10 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       GetShortPathName (outFilePath, dataFilePath, MAX_PATH);
       sprintf (&outFilePath[strlen (outFilePath)],"/out_%i.ini",td->id);
       td->inputData.seek (0);
-      chain.setStream (td->connection->socket);
-      if (td->mime)
-        {
-          Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                          td->mime->filters,
-                                                        td->connection->socket,
-                                                               &nbw, 1);
-          td->sentData += nbw;
-        }
+
+      MemoryStream memStream (td->auxiliaryBuffer);
+      generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                            td->mime, memStream);
 
       /* The WinCGI protocol uses a .ini file to send data to the new process.  */
       DataFileHandle.openFile (dataFilePath, File::FILE_OPEN_ALWAYS
@@ -257,7 +252,6 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
         {
           FilesUtility::deleteFile (outFilePath);
           FilesUtility::deleteFile (dataFilePath);
-          chain.clearAllFilters ();
           return HttpDataHandler::RET_FAILURE;
         }
 
@@ -272,7 +266,6 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
           OutFileHandle.close ();
           FilesUtility::deleteFile (outFilePath);
           FilesUtility::deleteFile (dataFilePath);
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -291,7 +284,8 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
             }
         }
 
-      HttpHeaders::buildHTTPResponseHeaderStruct (buffer, &td->response, &(td->nBytesToRead));
+      HttpHeaders::buildHTTPResponseHeaderStruct (buffer, &td->response,
+                                                  &(td->nBytesToRead));
 
       chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (),
@@ -302,14 +296,12 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
           OutFileHandle.close ();
           FilesUtility::deleteFile (outFilePath);
           FilesUtility::deleteFile (dataFilePath);
-          chain.clearAllFilters ();
           return HttpDataHandler::RET_OK;
         }
 
-      td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
-                                                                buffer + headerSize,
-                                                                nBytesRead - headerSize,
-                                                                chain);
+      td->sentData +=
+        HttpDataHandler::appendDataToHTTPChannel (td, buffer + headerSize,
+                                                  nBytesRead - headerSize);
 
 
       if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
@@ -324,24 +316,21 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
 
               td->sentData +=
                 HttpDataHandler::appendDataToHTTPChannel (td, buffer,
-                                                          nBytesRead, chain);
+                                                          nBytesRead);
 
               td->sentData += nbw;
             }
           while (nBytesRead);
         }
 
-      MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain);
+      td->sentData += completeHTTPResponse (td, memStream);
 
-      chain.clearAllFilters ();
       OutFileHandle.close ();
       FilesUtility::deleteFile (outFilePath);
       FilesUtility::deleteFile (dataFilePath);
     }
   catch (exception & e)
     {
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
   return HttpDataHandler::RET_OK;

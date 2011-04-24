@@ -63,7 +63,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
   FcgiContext con;
   size_t nbr = 0;
   FcgiHeader header;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   size_t nbw;
 
   int exit;
@@ -284,7 +284,7 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       while (! exit);
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain);
+      td->sentData += completeHTTPResponse (td, memStream);
 
       chain.clearAllFilters ();
       con.sock.close ();
@@ -618,8 +618,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   con->td->sentData +=
     HttpDataHandler::appendDataToHTTPChannel (con->td,
                                               con->td->buffer->getBuffer (),
-                                              con->td->buffer->getLength (),
-                                              *chain);
+                                              con->td->buffer->getLength ());
   return 0;
 }
 
@@ -702,10 +701,10 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
   /* Flush the buffer if remaining data is present.  */
   if (size - headerSize)
     {
-      size_t nbw = HttpDataHandler::appendDataToHTTPChannel (con->td,
-                                                con->td->buffer->getBuffer () + headerSize,
-                                                size - headerSize,
-                                                *chain);
+      size_t nbw =
+        appendDataToHTTPChannel (con->td,
+                                 con->td->buffer->getBuffer () + headerSize,
+                                 size - headerSize);
       con->td->sentData += nbw;
     }
 

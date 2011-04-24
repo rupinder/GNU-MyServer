@@ -53,7 +53,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
    */
   ostringstream tmpStream;
   string outDataPath;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   size_t nbw;
   DynamicLibrary hinstLib;
   CGIMAIN ProcMain = 0;
@@ -132,7 +132,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
         }
 
       MemoryStream memStream (td->auxiliaryBuffer);
-      td->sentData += completeHTTPResponse (td, memStream, chain);
+      td->sentData += completeHTTPResponse (td, memStream);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
@@ -152,7 +152,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 /*!
   Send a chunk of data to the client.
  */
-int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
+int MsCgi::write (const char *data, size_t len, MsCgiData *mcd)
 {
   if (mcd->error)
     return 1;
@@ -173,7 +173,7 @@ int MsCgi::write (const char* data, size_t len, MsCgiData* mcd)
 /*!
   Send the HTTP header.
  */
-int MsCgi::sendHeader (MsCgiData* mcd)
+int MsCgi::sendHeader (MsCgiData *mcd)
 {
   HttpThreadContext* td = mcd->td;
 
