@@ -267,18 +267,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     if (etagHeader && !etagHeader->value.compare (etag))
       return td->http->sendHTTPNonModified ();
     else
-      {
-        HttpResponseHeader::Entry *e = td->response.other.get ("etag");
-        if (e)
-          e->value.assign (etag);
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("etag");
-            e->value.assign (etag);
-            td->response.other.put (e->name, e);
-          }
-      }
+      td->response.setValue ("etag", etag.c_str ());
 
     if (lastByte == 0)
       lastByte = filesize;
@@ -371,25 +360,23 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
         /* Check if there are other bytes to send.  */
         if (! bytesToSend)
           break;
-        else
+
+        /* Read from the file the bytes to send.  */
+        size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
+
+        file->read (td->buffer->getBuffer (), size, &nbr);
+        if (nbr == 0)
           {
-            /* Read from the file the bytes to send.  */
-            size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
-
-            file->read (td->buffer->getBuffer (), size, &nbr);
-            if (nbr == 0)
-              {
-                bytesToSend = 0;
-                continue;
-              }
-
-            bytesToSend -= nbr;
-
-            td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                     nbr, chain,
-                                                     td->buffer->getRealLength (),
-                                                     memStream);
+            bytesToSend = 0;
+            continue;
           }
+
+        bytesToSend -= nbr;
+
+        td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                 nbr, chain,
+                                                 td->buffer->getRealLength (),
+                                                 memStream);
       }/* End for loop.  */
 
     td->sentData += completeHTTPResponse (td, memStream, chain);
