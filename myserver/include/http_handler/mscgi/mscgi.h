@@ -59,7 +59,7 @@ public:
                     bool onlyHeader = false);
 
   int write (const char*, size_t, MsCgiData*);
-  int sendHeader (MsCgiData*);
+  int sendHeader (MsCgiData *);
 
 private:
   static DynamicLibrary mscgiModule;

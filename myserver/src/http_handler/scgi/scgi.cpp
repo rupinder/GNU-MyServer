@@ -69,18 +69,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
       tmp.assign (scriptpath);
       FilesUtility::splitPath (tmp, td->scriptDir, td->scriptFile);
 
-      chain.setStream (td->connection->socket);
-      if (td->mime)
-        {
-          size_t nbw;
-          if (td->mime)
-            Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                                 td->mime->filters,
-                                                                 td->connection->socket,
-                                                                 &nbw,
-                                                                 1);
-        }
-
       td->buffer->setLength (0);
       td->auxiliaryBuffer->getAt (0) = '\0';
 
@@ -205,12 +193,13 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
  */
 int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader)
 {
+  HttpThreadContext* td = ctx->td;
   clock_t initialTicks = getTicks ();
   u_long read = 0;
   u_long headerSize = 0;
   u_long tmpHeaderSize = 0;
   size_t nbw, nbr;
-  HttpThreadContext* td = ctx->td;
+  MemoryStream memStream (td->auxiliaryBuffer);
 
   for (;;)
     {
@@ -251,12 +240,17 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader)
                                                 &td->response,
                                                 &(td->nBytesToRead));
 
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
   chooseEncoding (td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
-                           *td->auxiliaryBuffer, td);
+                           *td->buffer, td);
 
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
+
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
   if (read - headerSize)
     td->sentData +=
@@ -279,7 +273,6 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader)
                                      nbr);
         }
 
-      MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += completeHTTPResponse (td, memStream);
     }
 

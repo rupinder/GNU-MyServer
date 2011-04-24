@@ -93,14 +93,6 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       FilesUtility::splitPath (tmp, td->cgiRoot, td->cgiFile);
       tmp.assign (scriptpath);
       FilesUtility::splitPath (tmp, td->scriptDir, td->scriptFile);
-      chain.setStream (td->connection->socket);
-
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw,
-                                                             1);
 
       td->buffer->setLength (0);
       td->auxiliaryBuffer->getAt (0) = '\0';
@@ -185,7 +177,6 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
           td->connection->host->warningsLogWrite
               (_("FastCGI: cannot connect to the %s process"),
                cmdLine.str ().c_str ());
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -286,12 +277,10 @@ int FastCgi::send (HttpThreadContext* td, const char* scriptpath,
       MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += completeHTTPResponse (td, memStream);
 
-      chain.clearAllFilters ();
       con.sock.close ();
     }
   catch (exception & e)
     {
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
@@ -631,7 +620,7 @@ int FastCgi::sendData (FcgiContext* con, u_long dim, u_long timeout,
   \return 0 on success.
  */
 int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* responseCompleted,
-         bool onlyHeader)
+                           bool onlyHeader)
 {
   char* buffer = con->td->buffer->getBuffer ();
   u_long size = con->td->buffer->getLength ();
@@ -679,14 +668,21 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
         }
     }
 
-    {
-      string *location = con->td->response.getValue ("Location", NULL);
-      if (location)
-        {
-          *responseCompleted = true;
-          return con->td->http->sendHTTPRedirect (location->c_str ());
-        }
-    }
+  {
+    string *location = con->td->response.getValue ("Location", NULL);
+    if (location)
+      {
+        *responseCompleted = true;
+        return con->td->http->sendHTTPRedirect (location->c_str ());
+      }
+  }
+
+  char tmpBuf[1024];
+  MemBuf memBuf;
+  MemoryStream memStream (&memBuf);
+  memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+  generateFiltersChain (con->td, Server::getInstance ()->getFiltersFactory (),
+                        con->td->mime, memStream);
 
   chooseEncoding (con->td);
   if (HttpHeaders::sendHeader (con->td->response, *con->td->connection->socket,
@@ -696,7 +692,13 @@ int FastCgi::handleHeader (FcgiContext* con, FiltersChain* chain, bool* response
       return 1;
     }
 
+
   con->headerSent = true;
+
+  if (onlyHeader)
+    return 0;
+
+  con->td->sentData += HttpDataHandler::beginHTTPResponse (con->td, memStream);
 
   /* Flush the buffer if remaining data is present.  */
   if (size - headerSize)

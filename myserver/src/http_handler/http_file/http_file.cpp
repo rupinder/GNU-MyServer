@@ -322,9 +322,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     */
     if (onlyHeader)
       {
-        file->close ();
         delete file;
-        chain.clearAllFilters ();
         return HttpDataHandler::RET_OK;
       }
 

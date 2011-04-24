@@ -384,6 +384,8 @@ int HttpDir::send (HttpThreadContext* td,
       if (onlyHeader)
         return HttpDataHandler::RET_OK;
 
+      td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
+
       sortIndex = td->request.uriOpts.find ("sort=");
 
       if (sortIndex != string::npos && sortIndex + 5 < td->request.uriOpts.length ())

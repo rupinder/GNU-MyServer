@@ -286,11 +286,8 @@ int WebDAV::propfind (HttpThreadContext* td)
   try
     {
       size_t nbw, nbw2;
-      FiltersChain &chain = td->outputChain;
-      list<string> filters;
-      FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       vector <const char *> propReq;
-
+      FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       /* Obtain the payload.  */
       XmlParser p;
       if (p.open (td->inputData.getFilename (), 0) < 0)
@@ -299,12 +296,19 @@ int WebDAV::propfind (HttpThreadContext* td)
       /* Obtain xml entities in the payload.  */
       getElements (xmlDocGetRootElement (p.getDoc ()), &propReq);
 
-      ff->chain (&chain, filters, td->connection->socket, &nbw, 1);
+      char tmpBuf[1024];
+      MemBuf memBuf;
+      MemoryStream memStream (&memBuf);
+      memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+      HttpDataHandler::generateFiltersChain (td, ff, td->mime, memStream);
 
       td->response.httpStatus = 207;
 
       HttpDataHandler::chooseEncoding (td);
-      HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
+      HttpHeaders::sendHeader (td->response, *td->outputChain.getStream (),
+                               *td->buffer, td);
+
+      td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
       /* Determine the Depth.  */
       MemBuf tmp;
@@ -338,7 +342,6 @@ int WebDAV::propfind (HttpThreadContext* td)
             break;
         }
 
-      MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream);
 
       return HttpDataHandler::RET_OK;

@@ -179,6 +179,7 @@ size_t
 HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
                                     MemoryStream &memStream)
 {
+  char tmpBuf[BUFSIZ];
   size_t ret = 0;
   /*
     Flush initial data.  This is data that filters could have added
@@ -187,18 +188,19 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
   */
   if (memStream.availableToRead ())
     {
-      size_t nbr;
-      memStream.read (td->buffer->getBuffer (),
-                      td->buffer->getRealLength (), &nbr);
-
-      memStream.refresh ();
-      if (nbr)
+      for (;;)
         {
+          size_t nbr;
+          memStream.read (tmpBuf, BUFSIZ, &nbr);
+          if (nbr == 0)
+            break;
+
           FiltersChain directChain (td->outputChain.getStream ());
-          ret += appendDataToHTTPChannel (td, td->buffer->getBuffer (), nbr,
-                                          directChain);
+          ret += appendDataToHTTPChannel (td, tmpBuf, nbr, directChain);
         }
     }
+
+  memStream.refresh ();
 
   return ret;
 }

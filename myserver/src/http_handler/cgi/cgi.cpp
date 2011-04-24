@@ -63,7 +63,6 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
   bool nph = false;
   ostringstream cmdLine;
 
-  FiltersChain &chain = td->outputChain;
   Process cgiProc;
 
   StartProcInfo spi;
@@ -126,8 +125,6 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
       tmpScriptPath.assign (scriptpath);
       FilesUtility::splitPath (tmpScriptPath, td->scriptDir, td->scriptFile);
 
-      chain.setStream (td->connection->socket);
-
       if (execute)
         {
           const char *args = 0;
@@ -183,7 +180,6 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
                   td->scriptPath.assign ("");
                   td->scriptFile.assign ("");
                   td->scriptDir.assign ("");
-                  chain.clearAllFilters ();
                   return td->http->raiseHTTPError (500);
                 }
 
@@ -264,17 +260,15 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
       stdInFile.close ();
       stdOutFile.closeWrite ();
 
-      sendData (td, stdOutFile, chain, cgiProc, onlyHeader, nph);
+      sendData (td, stdOutFile, cgiProc, onlyHeader, nph);
 
       stdOutFile.close ();
       cgiProc.terminateProcess ();
-      chain.clearAllFilters ();
     }
   catch (exception & e)
     {
       stdOutFile.close ();
       stdInFile.close ();
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
@@ -284,8 +278,8 @@ int Cgi::send (HttpThreadContext* td, const char* scriptpath,
 /*
   Read data from the CGI process and send it back to the client.
  */
-int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
-                   Process &cgiProc, bool onlyHeader, bool nph)
+int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, Process &cgiProc,
+                   bool onlyHeader, bool nph)
 {
   size_t nbw = 0;
   size_t nBytesRead = 0;
@@ -296,20 +290,12 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
 
   procStartTime = getTicks ();
 
-  if (sendHeader (td, stdOutFile, chain, cgiProc, onlyHeader, nph,
-                  procStartTime, &ret))
+  if (sendHeader (td, stdOutFile, cgiProc, onlyHeader, nph, procStartTime,
+                  &ret))
     return ret;
 
   if (!nph && onlyHeader)
     return HttpDataHandler::RET_OK;
-
-  /* Create the output filters chain.  */
-  if (td->mime)
-    {
-      FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
-      ff->chain (&chain, td->mime->filters, td->connection->socket, &nbw, 1);
-      td->sentData += nbw;
-    }
 
   /* Send the rest of the data until we can read from the pipe.  */
   for (;;)
@@ -353,9 +339,8 @@ int Cgi::sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
   Send the HTTP header.
   \return nonzero if the reply is already complete.
  */
-int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
-                     FiltersChain &chain, Process &cgiProc, bool onlyHeader,
-                     bool nph, u_long procStartTime, int *ret)
+int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile, Process &cgiProc,
+                     bool onlyHeader, bool nph, u_long procStartTime, int *ret)
 {
   u_long headerSize = 0;
   bool headerCompleted = false;
@@ -450,9 +435,18 @@ int Cgi::sendHeader (HttpThreadContext *td, Pipe &stdOutFile,
               return 1;
             }
 
+          MemoryStream memStream (td->auxiliaryBuffer);
+          generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                                td->mime, memStream);
+
           chooseEncoding (td);
-          HttpHeaders::sendHeader (td->response, *chain.getStream (),
+          HttpHeaders::sendHeader (td->response, *td->outputChain.getStream (),
                                    *td->buffer, td);
+
+          if (onlyHeader)
+            return 0;
+
+          td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
         }
     }
 

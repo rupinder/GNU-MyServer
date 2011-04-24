@@ -126,14 +126,6 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       if (td->request.uriOptsPtr)
         td->inputData.fastCopyToSocket (sock, 0, td->auxiliaryBuffer, &nbw);
 
-      chain.setStream (td->connection->socket);
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw,
-                                                             1);
-
 
       flushToClient (td, *sock, chain, onlyHeader, &keepalive);
 
@@ -211,6 +203,14 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
       transferEncoding.assign (*tmp);
     }
 
+
+  char tmpBuf[1024];
+  MemBuf memBuf;
+  MemoryStream memStream (&memBuf);
+  memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
   /* At this point we can modify the response struct before send it to the
      client.  */
 
@@ -219,6 +219,8 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
 
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
+
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
   readPayLoad (td, &td->response, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,

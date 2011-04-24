@@ -104,7 +104,10 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       sprintf (&outFilePath[strlen (outFilePath)],"/out_%i.ini",td->id);
       td->inputData.seek (0);
 
-      MemoryStream memStream (td->auxiliaryBuffer);
+      char tmpBuf[1024];
+      MemBuf memBuf;
+      MemoryStream memStream (&memBuf);
+      memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
       generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
                             td->mime, memStream);
 
@@ -215,7 +218,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       DataFileHandle.writeToFile (buffer, (size_t) strlen (buffer), &nbr);
 
       /*
-       *Compute the local offset from the GMT time
+        Compute the local offset from the GMT time
        */
       tm tmpTm;
       ltime = 100;
@@ -231,7 +234,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
       DataFileHandle.close ();
 
       /*
-       *Create the out file.
+        Create the out file.
        */
       if (! FilesUtility::nodeExists (outFilePath))
         OutFileHandle.openFile (outFilePath, File::FILE_OPEN_ALWAYS
@@ -289,7 +292,7 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
 
       chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (),
-                               *td->buffer, td);
+                               *td->auxiliaryBuffer, td);
 
       if (onlyHeader)
         {
@@ -298,6 +301,8 @@ int WinCgi::send (HttpThreadContext* td, const char* scriptpath,
           FilesUtility::deleteFile (dataFilePath);
           return HttpDataHandler::RET_OK;
         }
+
+      td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
       td->sentData +=
         HttpDataHandler::appendDataToHTTPChannel (td, buffer + headerSize,

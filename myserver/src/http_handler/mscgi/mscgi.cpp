@@ -73,6 +73,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
   data.error = false;
   data.filtersChain = &chain;
   data.headerSent = false;
+  MemoryStream memStream (td->auxiliaryBuffer);
 
   if (!(td->permissions & MYSERVER_PERMISSION_EXECUTE))
     return td->http->sendAuth ();
@@ -93,12 +94,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 
       Env::buildEnvironmentString (td,data.envString);
       chain.setStream (td->connection->socket);
-
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw, 1);
 
       try
         {
@@ -131,13 +126,10 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
           return td->http->raiseHTTPError (data.errorPage);
         }
 
-      MemoryStream memStream (td->auxiliaryBuffer);
       td->sentData += completeHTTPResponse (td, memStream);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
-
-      chain.clearAllFilters ();
 
     }
   catch (exception & e)
@@ -183,11 +175,21 @@ int MsCgi::sendHeader (MsCgiData *mcd)
   if (mcd->headerSent)
     return 0;
 
+  MemoryStream memStream (td->auxiliaryBuffer);
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
   chooseEncoding (mcd->td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
-                           *td->auxiliaryBuffer, td);
+                           *td->buffer, td);
 
   mcd->headerSent = true;
+
+  if (mcd->onlyHeader)
+    return 0;
+
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
+
   return 0;
 }
 

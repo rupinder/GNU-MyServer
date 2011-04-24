@@ -212,7 +212,7 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
   if (ConnInfo == NULL)
     return HttpDataHandler::RET_FAILURE;
 
-  buffer= (char*)ConnInfo->td->buffer->getBuffer ();
+  buffer= (char *) ConnInfo->td->buffer->getBuffer ();
   HttpRequestHeader::Entry *connection = ConnInfo->td->request.other.get ("connection");
 
   if (ConnInfo == NULL)
@@ -270,6 +270,14 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
             (ConnInfo->td->buffer->getBuffer (), &ConnInfo->td->response,
              &(ConnInfo->td->nBytesToRead));
 
+          char tmpBuf[1024];
+          MemBuf memBuf;
+          MemoryStream memStream (&memBuf);
+          memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+          HttpDataHandler::generateFiltersChain (ConnInfo->td,
+                       Server::getInstance ()->getFiltersFactory (),
+                                ConnInfo->td->mime, memStream);
+
           HttpDataHandler::chooseEncoding (ConnInfo->td);
           if (HttpHeaders::sendHeader (ConnInfo->td->response,
                                        *ConnInfo->td->connection->socket,
@@ -285,6 +293,9 @@ BOOL WINAPI ISAPI_WriteClientExport (HCONN hConn, LPVOID Buffer, LPDWORD lpdwByt
               || ConnInfo->td->response.getStatusType ()
               == HttpResponseHeader::SUCCESSFUL)
             return 0;
+
+          ConnInfo->td->sentData +=
+            HttpDataHandler::beginHTTPResponse (ConnInfo->td, memStream);
 
           size_t written = 0;
           if (len)
@@ -711,18 +722,6 @@ int Isapi::send (HttpThreadContext* td,
           return td->http->raiseHTTPError (500);
         }
 
-      connTable[connIndex].chain.setStream (td->connection->socket);
-      if (td->mime)
-        {
-          size_t nbw;
-          if (td->mime)
-            Server::getInstance ()->getFiltersFactory ()->chain (
-                                             &(connTable[connIndex].chain),
-                                             td->mime->filters,
-                                             td->connection->socket,
-                                             &nbw, 1);
-        }
-
       connTable[connIndex].connection = td->connection;
       connTable[connIndex].td = td;
       connTable[connIndex].onlyHeader = onlyHeader;
@@ -739,7 +738,6 @@ int Isapi::send (HttpThreadContext* td,
         {
           td->connection->host->warningsLogWrite (_("ISAPI: internal error"));
           appHnd.close ();
-          connTable[connIndex].chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -747,7 +745,6 @@ int Isapi::send (HttpThreadContext* td,
         {
           td->connection->host->warningsLogWrite (_("ISAPI: internal error"));
           appHnd.close ();
-          connTable[connIndex].chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -756,7 +753,6 @@ int Isapi::send (HttpThreadContext* td,
         {
           td->connection->host->warningsLogWrite (_("ISAPI: version not supported"));
           appHnd.close ();
-          connTable[connIndex].chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -809,7 +805,6 @@ int Isapi::send (HttpThreadContext* td,
         {
           td->connection->host->warningsLogWrite (_("ISAPI: cannot find entry-point"));
           appHnd.close ();
-          connTable[connIndex].chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -843,13 +838,11 @@ int Isapi::send (HttpThreadContext* td,
       ostringstream tmps;
       tmps << connTable[connIndex].dataSent;
       connTable[connIndex].td->response.contentLength.assign (tmps.str ());
-      connTable[connIndex].chain.clearAllFilters ();
       connTable[connIndex].Allocated = 0;
 
     }
   catch (exception & e)
     {
-      connTable[connIndex].chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
