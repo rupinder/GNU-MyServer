@@ -148,29 +148,36 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 /*!
   Flush the server reply to the client.
  */
-int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
+int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
                           FiltersChain &out, bool onlyHeader, bool *kaClient)
 {
   size_t read = 0;
   size_t headerLength;
   int ret;
   size_t nbw;
-
+  bool validResponse = false;
   td->response.free ();
-  do
+
+  for (;;)
     {
       ret = client.recv (td->auxiliaryBuffer->getBuffer () + read,
-                         td->auxiliaryBuffer->getRealLength () - read,
+                         td->auxiliaryBuffer->getRealLength () - read - 1,
                          0,
                          td->http->getTimeout ());
 
+      if (ret == 0)
+        break;
+
       read += ret;
 
-      if (HttpHeaders::buildHTTPResponseHeaderStruct
-          (td->auxiliaryBuffer->getBuffer (), &td->response, &headerLength))
+      td->auxiliaryBuffer->getBuffer ()[read] = '\0';
+
+      validResponse = HttpHeaders::buildHTTPResponseHeaderStruct
+        (td->auxiliaryBuffer->getBuffer (), &td->response, &headerLength);
+
+      if (validResponse)
         break;
     }
-  while (ret);
 
   if (read == 0)
     return td->http->raiseHTTPError (500);
@@ -200,7 +207,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
       transferEncoding.assign (*tmp);
     }
 
-
   char tmpBuf[1024];
   MemBuf memBuf;
   MemoryStream memStream (&memBuf);
@@ -210,7 +216,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
 
   /* At this point we can modify the response struct before send it to the
      client.  */
-
   chooseEncoding (td, td->response.contentLength.length ());
   HttpHeaders::sendHeader (td->response, *out.getStream (), *td->buffer, td);
 
@@ -285,9 +290,10 @@ int Proxy::readPayLoad (HttpThreadContext* td,
               if (!nbr)
                 break;
 
-              td->sentData += HttpDataHandler::appendDataToHTTPChannel (td,
-                                                       td->buffer->getBuffer (),
-                                                       nbr);
+              td->sentData +=
+                HttpDataHandler::appendDataToHTTPChannel (td,
+                                                      td->buffer->getBuffer (),
+                                                          nbr);
             }
         }
     }
@@ -306,8 +312,8 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
           int timedOut =
             HttpDataRead::readContiguousPrimitivePostData (initBuffer, &inPos,
-                                                           initBufferSize, client,
-                                                           td->buffer->getBuffer (),
+                                                       initBufferSize, client,
+                                                     td->buffer->getBuffer (),
                                                            len, &nbr, timeout);
 
           if (contentLength == 0 && nbr == 0)

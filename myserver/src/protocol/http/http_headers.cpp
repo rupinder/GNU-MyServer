@@ -954,7 +954,7 @@ int HttpHeaders::buildHTTPResponseHeaderStruct (const char *input,
   /* Control if the HTTP header is a valid header.  */
   if (input[0] == 0)
     return 0;
-  validResponse = validHTTPResponse (input,&nLines, &maxTotchars);
+  validResponse = validHTTPResponse (input, &nLines, &maxTotchars);
 
   if (validResponse)
   {

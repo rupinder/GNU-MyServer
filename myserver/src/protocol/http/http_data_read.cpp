@@ -171,7 +171,7 @@ int HttpDataRead::readChunkedPostData (const char *inBuffer,
 
       while (chunkNbr < dataToRead)
         {
-          u_long rs = min (outBufferSize , dataToRead - chunkNbr);
+          u_long rs = min (outBufferSize, dataToRead - chunkNbr);
 
           int timedOut =
             readContiguousPrimitivePostData (inBuffer, inBufferPos,

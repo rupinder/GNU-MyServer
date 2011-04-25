@@ -744,8 +744,7 @@ Http::sendHTTPResource (string& uri, bool systemrequest, bool onlyHeader,
 int Http::logHTTPaccess ()
 {
   char tmpStrInt[12];
-
-  string time;
+  char time[32];
 
   try
     {

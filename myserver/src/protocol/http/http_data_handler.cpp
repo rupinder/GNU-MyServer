@@ -134,6 +134,12 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
 {
   size_t tmp, nbw = 0;
 
+  /* In the chunked transfer encoding, a chunk of size 0 has a special meaning,
+     just skip it.  */
+  if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_CHUNKED
+      && size == 0)
+    return 0;
+
   if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_CHUNKED)
     {
       ostringstream chunkHeader;
