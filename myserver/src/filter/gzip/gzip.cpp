@@ -88,13 +88,13 @@ u_long Gzip::compress (const char* in, size_t sizeIn,
   u_long old_total_out = data.stream.total_out;
   u_long ret;
 
-  if (compressBound (sizeIn) > (u_long)sizeOut)
+  if (compressBound (sizeIn) > (u_long) sizeOut)
     return 0;
 
   data.stream.data_type = Z_BINARY;
-  data.stream.next_in = (Bytef*) in;
+  data.stream.next_in = (Bytef *) in;
   data.stream.avail_in = sizeIn;
-  data.stream.next_out = (Bytef*) out;
+  data.stream.next_out = (Bytef *) out;
   data.stream.avail_out = sizeOut;
   ret = deflate (&(data.stream), Z_FULL_FLUSH);
 
@@ -266,28 +266,17 @@ u_long Gzip::getHeader (char *buffer, size_t buffersize)
  */
 int Gzip::read (char* buffer, size_t len, size_t *nbr)
 {
-  char *tmp_buff;
-  size_t nbr_parent;
+  char tmpBuf[len / 2];
+  size_t nbrParent;
   if (!parent)
     return -1;
 
   if (!active)
     return parent->read (buffer, len, nbr);
 
-  tmp_buff = new char[len/2];
+  parent->read (tmpBuf, len / 2, &nbrParent);
+  *nbr = compress (tmpBuf, nbrParent, buffer, len);
 
-  try
-    {
-      parent->read (tmp_buff, len/2, &nbr_parent);
-      *nbr = compress (tmp_buff, nbr_parent, buffer, len);
-    }
-  catch (...)
-    {
-      delete [] tmp_buff;
-      throw;
-    }
-
-  delete [] tmp_buff;
   return 0;
 }
 
