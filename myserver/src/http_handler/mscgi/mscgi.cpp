@@ -103,7 +103,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
         {
           td->connection->host->warningsLogWrite (_E ("MSCGI: cannot load %s"),
                                                   exec, &e);
-          chain.clearAllFilters ();
           /* Internal server error.  */
           return td->http->raiseHTTPError (500);
         }
@@ -122,7 +121,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 
       if (data.errorPage)
         {
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (data.errorPage);
         }
 

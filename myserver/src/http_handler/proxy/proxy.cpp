@@ -129,8 +129,6 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 
       flushToClient (td, *sock, chain, onlyHeader, &keepalive);
 
-      chain.clearAllFilters ();
-
       addConnection (con, destUrl.getHost ().c_str (), destUrl.getPort (),
                      keepalive);
 
@@ -141,7 +139,6 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       if (con)
         addConnection (con, destUrl.getHost ().c_str (), destUrl.getPort (),
                        false);
-      chain.clearAllFilters ();
       return HttpDataHandler::RET_FAILURE;
     }
 
