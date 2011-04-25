@@ -21,6 +21,7 @@
 # define HTTP_THREAD_CONTEXT_H
 
 # include "myserver.h"
+# include <include/protocol/http/http_data_handler.h>
 # include <include/protocol/http/http_request.h>
 # include <include/protocol/http/http_response.h>
 # include <include/base/string/stringutils.h>
@@ -42,12 +43,11 @@
 # include <string>
 using namespace std;
 
-
 class Http;
 class MimeRecord;
 
 /*!
-  Structure used by the HTTP protocol parser to describe a thread.
+  Store thread specific data.
  */
 struct HttpThreadContext
 {
@@ -63,7 +63,12 @@ struct HttpThreadContext
   /*! Size of the request header in `buffer'. */
   size_t headerSize;
 
-  bool useChunks;
+  enum
+    {
+      TRANSFER_ENCODING_NONE = 0,
+      TRANSFER_ENCODING_CHUNKED
+    }
+  transferEncoding;
 
   bool keepalive;
 

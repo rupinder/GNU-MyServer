@@ -29,7 +29,6 @@
 # include <include/filter/memory_stream.h>
 # include <include/conf/mime/mime_manager.h>
 
-
 /*!
   Base class to handle HTTP data.
  */
@@ -60,12 +59,6 @@ public:
                                          const char *buffer,
                                          size_t size);
 
-  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
-                                         const char *buffer,
-                                         size_t size,
-                                         FiltersChain &chain);
-
-
   static size_t beginHTTPResponse (HttpThreadContext *td,
                                    MemoryStream &memStream);
 
@@ -76,6 +69,12 @@ public:
                                       FiltersFactory *factory,
                                       MimeRecord *mime,
                                       MemoryStream &memStream);
+
+private:
+  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
+                                         const char *buffer,
+                                         size_t size,
+                                         FiltersChain &chain);
 };
 
 #endif

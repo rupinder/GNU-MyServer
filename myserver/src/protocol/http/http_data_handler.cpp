@@ -134,7 +134,7 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
 {
   size_t tmp, nbw = 0;
 
-  if (td->useChunks)
+  if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_CHUNKED)
     {
       ostringstream chunkHeader;
       chunkHeader << hex << size << "\r\n";
@@ -145,7 +145,7 @@ HttpDataHandler::appendDataToHTTPChannel (HttpThreadContext *td,
   if (size)
     chain.write (buffer, size, &nbw);
 
-  if (td->useChunks)
+  if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_CHUNKED)
     chain.getStream ()->write ("\r\n", 2, &tmp);
 
   return nbw;
@@ -161,14 +161,14 @@ void
 HttpDataHandler::chooseEncoding (HttpThreadContext *td, bool disableEncoding)
 {
   td->keepalive = td->request.isKeepAlive ();
-  td->useChunks = false;
+  td->transferEncoding = HttpThreadContext::TRANSFER_ENCODING_NONE;
 
   td->keepalive &= !td->request.ver.compare ("HTTP/1.1");
 
   if (!disableEncoding && td->keepalive)
     {
       td->response.setValue ("transfer-encoding", "chunked");
-      td->useChunks = true;
+      td->transferEncoding = HttpThreadContext::TRANSFER_ENCODING_CHUNKED;
     }
 }
 
@@ -188,6 +188,7 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
   */
   if (memStream.availableToRead ())
     {
+      FiltersChain directChain (td->outputChain.getStream ());
       for (;;)
         {
           size_t nbr;
@@ -195,7 +196,6 @@ HttpDataHandler::beginHTTPResponse (HttpThreadContext *td,
           if (nbr == 0)
             break;
 
-          FiltersChain directChain (td->outputChain.getStream ());
           ret += appendDataToHTTPChannel (td, tmpBuf, nbr, directChain);
         }
     }
@@ -213,10 +213,13 @@ HttpDataHandler::completeHTTPResponse (HttpThreadContext *td,
                                        MemoryStream &memStream)
 {
   size_t ret = 0;
+
   /* If we don't use chunks we can flush directly.  */
-  if (! td->useChunks)
-    td->outputChain.flush (&ret);
-  else
+  if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_NONE)
+    {
+      td->outputChain.flush (&ret);
+    }
+  else if (td->transferEncoding == HttpThreadContext::TRANSFER_ENCODING_CHUNKED)
     {
       /*
         Replace the final stream before the flush and write to a

@@ -135,9 +135,10 @@ int HttpDataRead::readChunkedPostData (const char *inBuffer,
           buffer[0] = '\0';
           for (;;)
             {
-              int timedOut = readContiguousPrimitivePostData (inBuffer, inBufferPos,
-                                                              inBufferSize, inSocket,
-                                                              &c, 1, &nbr, timeout);
+              int timedOut =
+                readContiguousPrimitivePostData (inBuffer, inBufferPos,
+                                                 inBufferSize, inSocket,
+                                                 &c, 1, &nbr, timeout);
               if (nbr != 1)
                 return -1;
 
@@ -154,8 +155,9 @@ int HttpDataRead::readChunkedPostData (const char *inBuffer,
             }
 
           /* Read the \n character too. */
-          if (readContiguousPrimitivePostData (inBuffer, inBufferPos, inBufferSize,
-                                               inSocket, &c, 1, &nbr, timeout))
+          if (readContiguousPrimitivePostData (inBuffer, inBufferPos,
+                                               inBufferSize, inSocket,
+                                               &c, 1, &nbr, timeout))
             return -1;
 
           dataToRead = (u_long) hexToInt (buffer);
@@ -171,10 +173,11 @@ int HttpDataRead::readChunkedPostData (const char *inBuffer,
         {
           u_long rs = min (outBufferSize , dataToRead - chunkNbr);
 
-          int timedOut = readContiguousPrimitivePostData (inBuffer, inBufferPos,
-                                                          inBufferSize,
-                                                          inSocket, outBuffer,
-                                                          rs, &nbr, timeout);
+          int timedOut =
+            readContiguousPrimitivePostData (inBuffer, inBufferPos,
+                                             inBufferSize,
+                                             inSocket, outBuffer,
+                                             rs, &nbr, timeout);
 
           if (nbr == 0)
             return -1;
@@ -216,7 +219,6 @@ int HttpDataRead::readChunkedPostData (const char *inBuffer,
               return 0;
             }
         }
-
     }
 
   if (remainingChunk)
@@ -321,16 +323,17 @@ int HttpDataRead::readPostData (HttpThreadContext* td, int* httpRetCode)
     {
       if (encoding->value.compare ("chunked") == 0)
         {
-          int ret = readChunkedPostData (td->request.uriOptsPtr,
-                                         &inPos,
-                                         bufferDataSize,
-                                         td->connection->socket,
-                                         td->auxiliaryBuffer->getBuffer (),
-                                         td->auxiliaryBuffer->getRealLength () - 1,
-                                         &nbr,
-                                         timeout,
-                                         &(td->inputData),
-                                         0);
+          int ret =
+            readChunkedPostData (td->request.uriOptsPtr,
+                                 &inPos,
+                                 bufferDataSize,
+                                 td->connection->socket,
+                                 td->auxiliaryBuffer->getBuffer (),
+                                 td->auxiliaryBuffer->getRealLength () - 1,
+                                 &nbr,
+                                 timeout,
+                                 &(td->inputData),
+                                 0);
 
           if (ret < 0)
             {
@@ -382,8 +385,9 @@ int HttpDataRead::readPostData (HttpThreadContext* td, int* httpRetCode)
 
           td->auxiliaryBuffer->getBuffer ()[nbr] = '\0';
 
-          if (nbr && td->inputData.writeToFile (td->auxiliaryBuffer->getBuffer (),
-                                                nbr, &nbw))
+          if (nbr
+              && td->inputData.writeToFile (td->auxiliaryBuffer->getBuffer (),
+                                            nbr, &nbw))
             {
               td->inputData.close ();
               return -1;
