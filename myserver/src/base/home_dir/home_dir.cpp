@@ -123,6 +123,26 @@ int HomeDir::load ()
   return ret;
 }
 
+void HomeDir::getLoginName (string &username)
+{
+  username.assign ("");
+#ifdef WIN32
+  char login[1024];
+  DWORD sz = sizeof (login);
+
+  if (GetUserName (login, &sz))
+    username.assign (login);
+
+  return;
+#else
+  const char *login = getlogin ();
+  if (login)
+    username.assign (login);
+
+  return;
+#endif
+}
+
 /*!
   Load the internal buffer.
  */

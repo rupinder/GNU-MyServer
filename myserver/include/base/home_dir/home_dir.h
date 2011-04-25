@@ -42,6 +42,8 @@ public:
 
   int isLoaded (){return loaded;}
 
+  void getLoginName (string &username);
+
 private:
   Mutex loadMutex;
   int loadImpl ();

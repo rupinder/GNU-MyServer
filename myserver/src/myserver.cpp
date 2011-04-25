@@ -24,6 +24,7 @@
 #include <include/conf/main/xml_main_configuration.h>
 
 #include <include/base/exceptions/checked.h>
+#include <include/base/home_dir/home_dir.h>
 
 #ifdef WIN32
 # include <direct.h>
@@ -304,7 +305,13 @@ int loadConfFileLocation (string &outFile, string fileName, const char *dir)
           return 0;
         }
 
-      outFile = "~/.myserver/" + fileName;
+      HomeDir homeDir;
+      string login;
+      homeDir.getLoginName (login);
+      homeDir.getHomeDir (login, outFile);
+
+      outFile.append ("/.myserver/");
+      outFile.append (fileName);
       if (FilesUtility::nodeExists (outFile))
         return 0;
 
