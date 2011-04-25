@@ -19,7 +19,6 @@
 #include <include/http_handler/proxy/proxy.h>
 
 #include <include/base/string/stringutils.h>
-
 #include <include/protocol/http/http_thread_context.h>
 #include <include/protocol/http/http.h>
 #include <include/protocol/url.h>
@@ -255,9 +254,9 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                         int timeout,
                         string *serverTransferEncoding)
 {
-  size_t contentLength = 0;
+  size_t contentLength = ((size_t) -1);
 
-  size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
+  size_t nbr = 0, nbw = 0, inPos = 0;
 
   /* Only the chunked transfer encoding is supported.  */
   if (serverTransferEncoding && serverTransferEncoding->compare ("chunked"))
@@ -269,8 +268,6 @@ int Proxy::readPayLoad (HttpThreadContext* td,
       if (contentLength < 0)
         return HttpDataHandler::RET_FAILURE;
     }
-
-  length = contentLength;
 
   /* If it is specified a transfer encoding read data using it.  */
   if (serverTransferEncoding)
@@ -299,12 +296,14 @@ int Proxy::readPayLoad (HttpThreadContext* td,
     }
   else
     {
+      size_t length = contentLength;
+
       /* If it is not specified an encoding, read the data as it is.  */
       for (;;)
         {
           u_long len = td->buffer->getRealLength () - 1;
 
-          if (contentLength && length < len)
+          if (contentLength != ((size_t) -1) && length < len)
             len = length;
 
           if (len == 0)
