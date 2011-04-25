@@ -521,6 +521,8 @@ int main (int argn, char **argv)
     }
   catch (...)
     {
+      if (input.useForkServer)
+        Process::getForkServer ()->killServer ();
       return 1;
     };
 

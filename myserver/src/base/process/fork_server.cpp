@@ -265,7 +265,7 @@ int ForkServer::forkServerLoop (UnixSocket *serverSocket)
         {
           serverSocket->close ();
           socket.close ();
-          perror ("fork server died.");
+          fprintf (stderr, "fork server died.\n");
           exit (1);
         }
     }
