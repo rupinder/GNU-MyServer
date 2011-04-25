@@ -224,7 +224,6 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
                read - headerLength, td->http->getTimeout (),
                hasTransferEncoding ? &transferEncoding : NULL);
 
-  td->sentData += ret;
   return HttpDataHandler::RET_OK;
 }
 
