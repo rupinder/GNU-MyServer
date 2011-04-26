@@ -115,6 +115,8 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 
       sock = con->socket;
 
+      req.clearValue ("accept-encoding");
+
       u_long hdrLen =
         HttpHeaders::buildHTTPRequestHeader (td->auxiliaryBuffer->getBuffer (),
                                              &req);
