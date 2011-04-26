@@ -155,6 +155,9 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
   int ret;
   size_t nbw;
   bool validResponse = false;
+  size_t contentLength = (size_t) - 1;
+
+
   td->response.free ();
 
   for (;;)
@@ -180,6 +183,9 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
 
   if (read == 0)
     return td->http->raiseHTTPError (500);
+
+  if (td->response.contentLength.length ())
+    contentLength = atoll (td->response.contentLength.c_str ());
 
   string *tmp = td->request.getValue ("Host", NULL);
   const char *via = tmp ? tmp->c_str () : td->connection->getLocalIpAddr ();
@@ -225,7 +231,7 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
 
   readPayLoad (td, &td->response, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,
-               read - headerLength, td->http->getTimeout (),
+               read - headerLength, td->http->getTimeout (), contentLength,
                hasTransferEncoding ? &transferEncoding : NULL);
 
   return HttpDataHandler::RET_OK;
@@ -240,6 +246,8 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
   \param initBufferSize Size of initial data.
   \param timeout Connection timeout.
   with the client.
+  \param contentLength The Content-Length specified by
+  the client, if any.
   \param serverTransferEncoding Transfer-encoding
   used by the server.
 
@@ -252,22 +260,14 @@ int Proxy::readPayLoad (HttpThreadContext* td,
                         const char *initBuffer,
                         u_long initBufferSize,
                         int timeout,
+                        size_t contentLength,
                         string *serverTransferEncoding)
 {
-  size_t contentLength = ((size_t) -1);
-
   size_t nbr = 0, nbw = 0, inPos = 0;
 
   /* Only the chunked transfer encoding is supported.  */
   if (serverTransferEncoding && serverTransferEncoding->compare ("chunked"))
     return HttpDataHandler::RET_FAILURE;
-
-  if (res->contentLength.length ())
-    {
-      contentLength = atoll (res->contentLength.c_str ());
-      if (contentLength < 0)
-        return HttpDataHandler::RET_FAILURE;
-    }
 
   /* If it is specified a transfer encoding read data using it.  */
   if (serverTransferEncoding)
@@ -324,7 +324,7 @@ int Proxy::readPayLoad (HttpThreadContext* td,
           td->sentData +=
             HttpDataHandler::appendDataToHTTPChannel (td,
                                              td->buffer->getBuffer (), nbr);
-          if (timedOut || contentLength && length == 0)
+          if (timedOut || contentLength != ((size_t) -1) && length == 0)
             break;
         }
     }

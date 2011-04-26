@@ -57,6 +57,7 @@ protected:
                    const char *initBuffer,
                    u_long initBufferSize,
                    int timeout,
+                   size_t contentLength,
                    string *serverTransferEncoding = NULL);
 
   static void proxySchedulerHandler (void *p, Connection *c, int event);
