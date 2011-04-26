@@ -175,6 +175,7 @@ HttpDataHandler::chooseEncoding (HttpThreadContext *td, bool disableEncoding)
     {
       td->response.setValue ("transfer-encoding", "chunked");
       td->transferEncoding = HttpThreadContext::TRANSFER_ENCODING_CHUNKED;
+      td->response.contentLength.assign ("");
     }
 }
 
@@ -275,6 +276,7 @@ HttpDataHandler::generateFiltersChain (HttpThreadContext *td,
       string filters;
       td->outputChain.getName (filters);
       td->response.setValue ("content-encoding", filters.c_str ());
+      td->response.contentLength.assign ("");
     }
 
   td->outputChain.setStream (td->connection->socket);
