@@ -280,14 +280,6 @@ int Process::exec (StartProcInfo* spi, bool waitEnd)
       else
         checked::dup2 (spi->stdError, 2);
 
-
-      if (spi->stdIn < 0)
-        gnulib::close (spi->stdIn);
-      if (spi->stdOut < 0)
-        gnulib::close (spi->stdOut);
-      if (spi->stdError < 0)
-        gnulib::close (spi->stdError);
-
       if (spi->handlesToClose)
         {
           FileHandle* h = spi->handlesToClose;
