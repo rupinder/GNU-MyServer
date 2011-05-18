@@ -303,6 +303,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
                           td->mime, memStream);
 
     fastCopyAllowed = chain.isEmpty ()
+      && td->connection->socket->getThrottling () == 0
       && !(td->http->getProtocolOptions () & Protocol::SSL);
 
     if (! chain.hasModifiersFilters ())
