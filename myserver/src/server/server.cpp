@@ -1039,13 +1039,13 @@ int Server::addConnection (Socket *s, MYSERVER_SOCKADDRIN *asockIn)
 #if ( HAVE_IPV6 )
   int ret;
   if ( asockIn->ss_family == AF_INET )
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
-                       sizeof (sockaddr_in),
-                       ip, MAX_IP_STRING_LEN, NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
+                               sizeof (sockaddr_in),
+                               ip, MAX_IP_STRING_LEN, NULL, 0, NI_NUMERICHOST);
   else
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
-                       sizeof (sockaddr_in6),  ip, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
+                               sizeof (sockaddr_in6),  ip, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   if (ret)
     return -1;
 
@@ -1056,13 +1056,13 @@ int Server::addConnection (Socket *s, MYSERVER_SOCKADDRIN *asockIn)
   s->getsockname ((MYSERVER_SOCKADDR*)&localSockIn, &dim);
 
   if ( asockIn->ss_family == AF_INET )
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
-                       sizeof (sockaddr_in), localIp, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
+                               sizeof (sockaddr_in), localIp, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   else
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
-                       sizeof (sockaddr_in6), localIp, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
+                               sizeof (sockaddr_in6), localIp, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   if (ret)
     return -1;
 #else

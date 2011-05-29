@@ -260,7 +260,8 @@ void Socket::getLocalIPsList (string &out)
   addrinfo aiHints = {0}, *pHostInfo = NULL, *pCrtHostInfo = NULL;
   aiHints.ai_socktype = SOCK_STREAM;
 
-  checked::checkError (getaddrinfo (serverName, NULL, &aiHints, &pHostInfo));
+  checked::checkError (gnulib::getaddrinfo (serverName, NULL, &aiHints,
+                                            &pHostInfo));
   if (pHostInfo != NULL)
     {
       sockaddr_storage *pCurrentSockAddr = NULL;
@@ -415,9 +416,9 @@ int Socket::connect (const char* host, u_short port)
   gnulib::snprintf (szPort, 10, "%d", port);
 
   if (aiHints.ai_family != 0)
-    nGetaddrinfoRet = getaddrinfo (host, NULL, &aiHints, &pHostInfo);
+    nGetaddrinfoRet = gnulib::getaddrinfo (host, NULL, &aiHints, &pHostInfo);
   else
-    nGetaddrinfoRet = getaddrinfo (host, NULL, NULL, &pHostInfo);
+    nGetaddrinfoRet = gnulib::getaddrinfo (host, NULL, NULL, &pHostInfo);
   if (nGetaddrinfoRet != 0 || pHostInfo == NULL )
     return -1;
 
