@@ -343,8 +343,6 @@ int Socket::send (const char* buffer, int len, int flags)
   {
     while (1)
       {
-        /* When we can send data again?  */
-        u_long time = getTicks () + (1000 * 1024 / throttlingRate) ;
         /* If a throttling rate is specified, send chunks of 1024 bytes.  */
         ret = rawSend (buffer + (len - toSend), toSend < 1024 ?
                        toSend : 1024, flags);
@@ -353,7 +351,7 @@ int Socket::send (const char* buffer, int len, int flags)
 
         /* If there are other bytes to send wait before cycle again.  */
         if (toSend)
-          Thread::wait (getTicks () - time);
+          Thread::wait (1000 * 1024 / throttlingRate);
         else
           break;
       }
