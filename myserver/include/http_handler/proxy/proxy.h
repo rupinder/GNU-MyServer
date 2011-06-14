@@ -53,13 +53,11 @@ protected:
                      FiltersChain &out, bool onlyHeader, bool *kaClient);
   int readPayLoad (HttpThreadContext* td,
                    HttpResponseHeader* res,
-                   FiltersChain *out,
                    Socket *client,
                    const char *initBuffer,
                    u_long initBufferSize,
                    int timeout,
-                   bool useChunks = false,
-                   bool keepalive = false,
+                   size_t contentLength,
                    string *serverTransferEncoding = NULL);
 
   static void proxySchedulerHandler (void *p, Connection *c, int event);

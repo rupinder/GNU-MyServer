@@ -77,7 +77,6 @@ Server::Server () : connectionsPool (100),
   serverReady = false;
   throttlingRate = 0;
   path = 0;
-  ipAddresses = 0;
   vhostHandler = NULL;
   purgeThreadsThreshold = 1;
   freeThreads = 0;
@@ -127,7 +126,6 @@ int Server::loadLibraries ()
   XmlParser::startXML ();
   myserver_safetime_init ();
 
-  gnutls_global_init ();
   if (Socket::startupSocketLib () != 0)
     {
       log (MYSERVER_LOG_MSG_ERROR, _("Error loading the socket library"));
@@ -152,9 +150,6 @@ Server::~Server ()
     delete path;
   path = 0;
 
-  if (ipAddresses)
-    delete ipAddresses;
-
   if (logManager)
     delete logManager;
 
@@ -173,10 +168,6 @@ void Server::start (string &mainConf, string &mimeConf, string &vhostConf,
 
 {
   int err = 0;
-#ifdef WIN32
-  DWORD eventsCount, cNumRead;
-  INPUT_RECORD irInBuf[128];
-#endif
 
   this->genMainConf = genMainConf;
 
@@ -267,13 +258,9 @@ int Server::postLoad ()
   log (MYSERVER_LOG_MSG_INFO, _("Host name: %s"), serverName);
 
   /* Find the IP addresses of the local machine.  */
-  if (ipAddresses)
-    delete ipAddresses;
-  ipAddresses = new string ();
-
   try
     {
-      Socket::getLocalIPsList (*ipAddresses);
+      Socket::getLocalIPsList (ipAddresses);
     }
   catch (exception & e)
     {
@@ -281,7 +268,7 @@ int Server::postLoad ()
       return -1;
     }
 
-  log (MYSERVER_LOG_MSG_INFO, _("IP: %s"), ipAddresses->c_str ());
+  log (MYSERVER_LOG_MSG_INFO, _("IP: %s"), ipAddresses.c_str ());
 
   log (MYSERVER_LOG_MSG_INFO, _("Detected %i CPUs"), (int) getCPUCount ());
 
@@ -748,8 +735,6 @@ int Server::terminate ()
 
   freeHashedData ();
 
-  ipAddresses = NULL;
-
   if (vhostHandler)
     delete vhostHandler;
   vhostHandler = NULL;
@@ -1054,13 +1039,13 @@ int Server::addConnection (Socket *s, MYSERVER_SOCKADDRIN *asockIn)
 #if ( HAVE_IPV6 )
   int ret;
   if ( asockIn->ss_family == AF_INET )
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
-                       sizeof (sockaddr_in),
-                       ip, MAX_IP_STRING_LEN, NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
+                               sizeof (sockaddr_in),
+                               ip, MAX_IP_STRING_LEN, NULL, 0, NI_NUMERICHOST);
   else
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
-                       sizeof (sockaddr_in6),  ip, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(asockIn),
+                               sizeof (sockaddr_in6),  ip, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   if (ret)
     return -1;
 
@@ -1071,13 +1056,13 @@ int Server::addConnection (Socket *s, MYSERVER_SOCKADDRIN *asockIn)
   s->getsockname ((MYSERVER_SOCKADDR*)&localSockIn, &dim);
 
   if ( asockIn->ss_family == AF_INET )
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
-                       sizeof (sockaddr_in), localIp, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
+                               sizeof (sockaddr_in), localIp, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   else
-    ret = getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
-                       sizeof (sockaddr_in6), localIp, MAX_IP_STRING_LEN,
-                       NULL, 0, NI_NUMERICHOST);
+    ret = gnulib::getnameinfo (reinterpret_cast<const sockaddr *>(&localSockIn),
+                               sizeof (sockaddr_in6), localIp, MAX_IP_STRING_LEN,
+                               NULL, 0, NI_NUMERICHOST);
   if (ret)
     return -1;
 #else
@@ -1209,12 +1194,12 @@ ConnectionPtr Server::addConnectionToList (Socket* s,
   if (doSSLhandshake)
     {
       int ret = 0;
-      SSL_CTX* ctx = newConnection->host->getSSLContext ();
       SslSocket *sslSocket = new SslSocket (s);
 
-      sslSocket->setSSLContext (ctx);
-      ret = sslSocket->sslAccept ();
+      sslSocket->setSSLContext (newConnection->host->getSSLContext (),
+                                newConnection->host->getSSLPriorityCache ());
 
+      ret = sslSocket->sslAccept ();
       if (ret < 0)
         {
           connectionsPoolLock.lock ();
@@ -1397,7 +1382,7 @@ void Server::getThreadsNumberInformation (u_long *num, u_long *max,
  */
 const char *Server::getAddresses ()
 {
-  return ipAddresses ? ipAddresses->c_str () : "";
+  return ipAddresses.c_str ();
 }
 
 /*!

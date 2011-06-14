@@ -21,6 +21,7 @@
 # define HTTP_THREAD_CONTEXT_H
 
 # include "myserver.h"
+# include <include/protocol/http/http_data_handler.h>
 # include <include/protocol/http/http_request.h>
 # include <include/protocol/http/http_response.h>
 # include <include/base/string/stringutils.h>
@@ -29,6 +30,7 @@
 # include <include/connection/connection.h>
 # include <include/conf/mime/mime_manager.h>
 # include <include/conf/security/security_token.h>
+# include <include/filter/filters_chain.h>
 
 # ifdef WIN32
 #  include <direct.h>
@@ -41,18 +43,15 @@
 # include <string>
 using namespace std;
 
-
 class Http;
 class MimeRecord;
 
 /*!
-  Structure used by the HTTP protocol parser to describe a thread.
+  Store thread specific data.
  */
 struct HttpThreadContext
 {
-  bool appendOutputs;
-
-  /*! Set by raiseHTTPError.  */
+  /*! Http::raiseHTTPError sets this.  */
   int lastError;
 
   /*! Is the client asking only for the header?  */
@@ -61,13 +60,25 @@ struct HttpThreadContext
   /*! Was the HTTP header already flushed to the client?  */
   bool headerSent;
 
+  /*! Size of the request header in `buffer'. */
+  size_t headerSize;
+
+  enum
+    {
+      TRANSFER_ENCODING_NONE = 0,
+      TRANSFER_ENCODING_CHUNKED
+    }
+  transferEncoding;
+
+  bool keepalive;
+
+  FiltersChain outputChain;
+
   ConnectionPtr connection;
   MemBuf *buffer;
   MemBuf *auxiliaryBuffer;
-  u_long buffersize;
   u_long id;
-  u_long nBytesToRead;
-  u_long nHeaderChars;
+  size_t nBytesToRead;
   HttpResponseHeader response;
   HttpRequestHeader request;
   string filenamePath;
@@ -83,7 +94,6 @@ struct HttpThreadContext
   HashMap<string,string*> other;
   char identity[32];
   File inputData;
-  File outputData;
   int authScheme;
   Http *http;
   MimeRecord *mime;
@@ -91,6 +101,7 @@ struct HttpThreadContext
   SecurityToken securityToken;
   int permissions;
 
+  ~HttpThreadContext ();
   const char* getVhostDir ();
   const char* getVhostSys ();
   const char* getData (const char *name);

@@ -484,14 +484,6 @@ int Vhost::initializeSSL ()
 }
 
 /*!
-  Get the SSL context.
- */
-SSL_CTX* Vhost::getSSLContext ()
-{
-  return sslContext.getContext ();
-}
-
-/*!
   Clean the memory used by the SSL context.
  */
 int Vhost::freeSSL ()

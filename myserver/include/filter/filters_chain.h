@@ -48,6 +48,7 @@ public:
   virtual int write (const char *buffer, size_t len, size_t *);
   virtual int flush (size_t *);
   FiltersChain ();
+  FiltersChain (Stream *s);
   ~FiltersChain ();
 protected:
   list <Filter*> filters;

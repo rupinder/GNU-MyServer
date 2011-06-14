@@ -272,12 +272,9 @@ XmlVhostHandler::loadXMLlogData (string name, Vhost *vh, xmlNode *lcur)
             }
         }
 
-      int err = 1;
-      string str ("XmlVhostHandler::loadXMLlogData : Unrecognized log type");
-
       if (! name.compare ("ACCESSLOG"))
         {
-          err = vh->openAccessLog (location, filters, cycle);
+          int err = vh->openAccessLog (location, filters, cycle);
           vh->setAccessLogOpt (opt.c_str ());
           if (err)
             Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,
@@ -285,7 +282,7 @@ XmlVhostHandler::loadXMLlogData (string name, Vhost *vh, xmlNode *lcur)
         }
       else if (! name.compare ("WARNINGLOG"))
         {
-          err = vh->openWarningLog (location, filters, cycle);
+          int err = vh->openWarningLog (location, filters, cycle);
           vh->setWarningLogOpt (opt.c_str ());
           if (err)
             Server::getInstance ()->log (MYSERVER_LOG_MSG_ERROR,

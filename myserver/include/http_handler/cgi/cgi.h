@@ -37,10 +37,10 @@ public:
                     const char* exec = 0, bool execute = false,
                     bool onlyHeader = false);
 private:
-  int sendData (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
-                Process& cgiProc, bool onlyHeader, bool nph);
-  int sendHeader (HttpThreadContext* td, Pipe &stdOutFile, FiltersChain& chain,
-                  Process& cgiProc, bool onlyHeader, bool nph, u_long procStartTime,
-                  bool keepalive, bool useChunks, int *ret);
+  int sendData (HttpThreadContext* td, Pipe &stdOutFile, Process& cgiProc,
+                bool onlyHeader, bool nph);
+  int sendHeader (HttpThreadContext* td, Pipe &stdOutFile, Process& cgiProc,
+                  bool onlyHeader, bool nph, u_long procStartTime,
+                  int *ret);
 };
 #endif

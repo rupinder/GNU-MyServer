@@ -33,7 +33,6 @@
 # include <include/protocol/http/http_data_handler.h>
 # include <include/base/hash_map/hash_map.h>
 # include <include/base/process/process_server_manager.h>
-# include <include/filter/filters_chain.h>
 # include <string>
 
 using namespace std;
@@ -64,7 +63,7 @@ private:
   static int initialized;
   Socket getScgiConnection ();
   int sendPostData (ScgiContext* ctx);
-  int sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain*);
+  int sendResponse (ScgiContext* ctx, bool onlyHeader);
   int buildScgiEnvironmentString (HttpThreadContext*, char*, char*);
   int sendNetString (ScgiContext*, const char*, int);
   ScgiServer* isScgiServerRunning (const char*);

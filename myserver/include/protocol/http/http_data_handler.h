@@ -22,10 +22,12 @@
 
 # include "myserver.h"
 # include <include/protocol/protocol.h>
-# include "include/protocol/http/http_headers.h"
+# include <include/protocol/http/http_headers.h>
+# include <include/protocol/http/http_thread_context.h>
 # include <include/filter/filters_chain.h>
+# include <include/filter/filters_factory.h>
 # include <include/filter/memory_stream.h>
-
+# include <include/conf/mime/mime_manager.h>
 
 /*!
   Base class to handle HTTP data.
@@ -43,33 +45,36 @@ public:
   virtual int load ();
   virtual int unLoad ();
 
-  virtual int send (HttpThreadContext*, const char* exec,
-                    const char* cmdLine = 0, bool execute = false,
+  virtual int send (HttpThreadContext *, const char *exec,
+                    const char *cmdLine = 0, bool execute = false,
                     bool onlyHeader = false);
 
   HttpDataHandler ();
   virtual ~HttpDataHandler ();
 
-  static void checkDataChunks (HttpThreadContext*, bool*, bool*);
+  static void chooseEncoding (HttpThreadContext *td,
+                               bool disableEncoding = false);
 
-  static int appendDataToHTTPChannel (HttpThreadContext* td,
-                                      char* buffer,
-                                      u_long size,
-                                      File* appendFile,
-                                      FiltersChain* chain,
-                                      bool append,
-                                      bool useChunks,
-                                      u_long realBufferSize,
-                                      MemoryStream *tmpStream);
+  static size_t appendDataToHTTPChannel (HttpThreadContext *td,
+                                         const char *buffer,
+                                         size_t size);
 
-  static int appendDataToHTTPChannel (HttpThreadContext* td,
-                                      char* buffer,
-                                      u_long size,
-                                      File* appendFile,
-                                      FiltersChain* chain,
-                                      bool append,
-                                      bool useChunks);
+  static size_t beginHTTPResponse (HttpThreadContext *td,
+                                   MemoryStream &memStream);
 
+  static size_t completeHTTPResponse (HttpThreadContext *td,
+                                      MemoryStream &memStream);
+
+  static size_t generateFiltersChain (HttpThreadContext *td,
+                                      FiltersFactory *factory,
+                                      MimeRecord *mime,
+                                      MemoryStream &memStream);
+
+private:
+  static size_t appendDataToHTTPChannel (HttpThreadContext* td,
+                                         const char *buffer,
+                                         size_t size,
+                                         FiltersChain &chain);
 };
 
 #endif

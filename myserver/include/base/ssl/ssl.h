@@ -35,20 +35,21 @@ public:
   int initialize ();
   int free ();
 
-  SSL_CTX* getContext (){return context;}
-  SSL_METHOD* getMethod (){return method;}
+  gnutls_certificate_credentials_t getCredentials (){return cred;}
+  gnutls_priority_t getPriorityCache (){return priority_cache;}
 
-  string& getCertificateFile (){return certificateFile;}
-  string& getPrivateKeyFile (){return privateKeyFile;}
-  string& getPassword (){return password;}
+  string &getCertificateFile (){return certificateFile;}
+  string &getPrivateKeyFile (){return privateKeyFile;}
+  string &getPassword (){return password;}
 
-  void setCertificateFile (string& c){certificateFile.assign (c);}
-  void setPrivateKeyFile (string& pk){privateKeyFile.assign (pk);}
+  void setCertificateFile (string &c){certificateFile.assign (c);}
+  void setPrivateKeyFile (string &pk){privateKeyFile.assign (pk);}
   void setPassword (string& p){password.assign (p);}
 
 private:
-  SSL_CTX* context;
-  SSL_METHOD* method;
+  gnutls_priority_t priority_cache;
+  gnutls_dh_params_t dh_params;
+  gnutls_certificate_credentials_t cred;
 
   string certificateFile;
   string privateKeyFile;

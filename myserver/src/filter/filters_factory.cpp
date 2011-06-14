@@ -94,8 +94,8 @@ Filter *FiltersFactory::getFilter (const char* name)
   will not modify the data.
   On errors returns 0.
 */
-FiltersChain* FiltersFactory::chain (list<string> &l, Stream* out, size_t *nbw,
-                                     int onlyNotModifiers)
+FiltersChain* FiltersFactory::makeChain (list<string> &l, Stream* out, size_t *nbw,
+                                         int onlyNotModifiers)
 {
   FiltersChain *ret = new FiltersChain ();
   if (!ret)
@@ -118,11 +118,13 @@ FiltersChain* FiltersFactory::chain (list<string> &l, Stream* out, size_t *nbw,
   \param nbw Number of written bytes, some filters may need to send a header.
   \param onlyNotModifiers if non-zero the method wil check that all the filters
   will not modify the data.
+  \param acceptAll If true, accept only modifier filters specified in `accepted'.
   \param accepted If specified, include only filters present in this string.
   On errors returns nonzero.
 */
 int FiltersFactory::chain (FiltersChain* c, list<string> &l, Stream* out,
-                           size_t *nbw, int onlyNotModifiers, string *accepted)
+                           size_t *nbw, bool onlyNotModifiers, bool acceptAll,
+                           const string &accepted)
 {
 
   list<string>::iterator  i = l.begin ();
@@ -135,9 +137,6 @@ int FiltersFactory::chain (FiltersChain* c, list<string> &l, Stream* out,
     {
       size_t tmp;
 
-      if (accepted && accepted->find (*i) == string::npos)
-        continue;
-
       Filter *n = getFilter ((*i).c_str ());
       if (!n)
         {
@@ -145,11 +144,17 @@ int FiltersFactory::chain (FiltersChain* c, list<string> &l, Stream* out,
           return 1;
         }
 
-      if (onlyNotModifiers && n->modifyData ())
+      if (n->modifyData ())
         {
-          delete n;
-          c->clearAllFilters ();
-          return 1;
+          if (!acceptAll && accepted.find (*i) == string::npos)
+            continue;
+
+          if (onlyNotModifiers)
+            {
+              delete n;
+              c->clearAllFilters ();
+              return 1;
+            }
         }
 
       c->addFilter (n, &tmp);

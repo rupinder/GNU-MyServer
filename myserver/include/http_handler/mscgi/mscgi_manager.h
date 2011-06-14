@@ -51,8 +51,8 @@ class MscgiManager
   void getenv (const char*, char*, u_long*);
   char* getParam (const char*);
   char* postParam (const char*);
-  int write (const char*);
-  int write (const void*, int);
+  int write (const char *);
+  int write (const void *, size_t);
  private:
   HttpThreadContext* td;
   MsCgiData* cgidata;

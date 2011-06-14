@@ -102,7 +102,8 @@ public:
   /*! Generate the RSA key for the SSL context. */
   void generateRsaKey ();
 
-  SSL_CTX* getSSLContext ();
+  gnutls_certificate_credentials_t getSSLContext (){return sslContext.getCredentials ();}
+  gnutls_priority_t getSSLPriorityCache (){return sslContext.getPriorityCache ();}
 
   /*! Get the list of hosts allowed.*/
   list<StringRegex*>* getHostList ()

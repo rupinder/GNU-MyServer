@@ -53,7 +53,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
    */
   ostringstream tmpStream;
   string outDataPath;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   size_t nbw;
   DynamicLibrary hinstLib;
   CGIMAIN ProcMain = 0;
@@ -69,13 +69,11 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
   data.errorPage = 0;
   data.server = Server::getInstance ();
   data.mscgi = this;
-  data.useChunks = false;
-  data.onlyHeader = onlyHeader ? true : false;
+  data.onlyHeader = onlyHeader;
   data.error = false;
   data.filtersChain = &chain;
   data.headerSent = false;
-  data.keepAlive = false;
-  data.useChunks = false;
+  MemoryStream memStream (td->auxiliaryBuffer);
 
   if (!(td->permissions & MYSERVER_PERMISSION_EXECUTE))
     return td->http->sendAuth ();
@@ -97,13 +95,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
       Env::buildEnvironmentString (td,data.envString);
       chain.setStream (td->connection->socket);
 
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw, 1);
-
-      checkDataChunks (td, &(data.keepAlive), &(data.useChunks));
       try
         {
           hinstLib.loadLibrary (exec, 0);
@@ -112,7 +103,6 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
         {
           td->connection->host->warningsLogWrite (_E ("MSCGI: cannot load %s"),
                                                   exec, &e);
-          chain.clearAllFilters ();
           /* Internal server error.  */
           return td->http->raiseHTTPError (500);
         }
@@ -131,27 +121,19 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 
       if (data.errorPage)
         {
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (data.errorPage);
         }
 
-      if (!td->appendOutputs && data.useChunks && !data.error)
-        chain.getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      td->sentData += completeHTTPResponse (td, memStream);
 
       if (!data.error)
         return HttpDataHandler::RET_FAILURE;
-
-      ostringstream tmp;
-      tmp << td->sentData;
-      td->response.contentLength.assign (tmp.str ());
-
-      chain.clearAllFilters ();
 
     }
   catch (exception & e)
     {
       td->connection->host->warningsLogWrite (_E ("Msgi: internal error"), &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return HttpDataHandler::RET_OK;
@@ -160,7 +142,7 @@ int MsCgi::send (HttpThreadContext* td, const char* exec, const char* cmdLine,
 /*!
   Send a chunk of data to the client.
  */
-int MsCgi::write (const char* data, u_long len, MsCgiData* mcd)
+int MsCgi::write (const char *data, size_t len, MsCgiData *mcd)
 {
   if (mcd->error)
     return 1;
@@ -171,22 +153,16 @@ int MsCgi::write (const char* data, u_long len, MsCgiData* mcd)
   if (mcd->onlyHeader)
     return 0;
 
-  HttpDataHandler::appendDataToHTTPChannel (mcd->td,
-                                            (char*) data,
-                                            len,
-                                            &(mcd->td->outputData),
-                                            mcd->filtersChain,
-                                            mcd->td->appendOutputs,
-                                            mcd->useChunks);
-
-  mcd->td->sentData +=len;
+  mcd->td->sentData +=
+    HttpDataHandler::appendDataToHTTPChannel (mcd->td,
+                                              data, len);
   return 0;
 }
 
 /*!
   Send the HTTP header.
  */
-int MsCgi::sendHeader (MsCgiData* mcd)
+int MsCgi::sendHeader (MsCgiData *mcd)
 {
   HttpThreadContext* td = mcd->td;
 
@@ -196,10 +172,21 @@ int MsCgi::sendHeader (MsCgiData* mcd)
   if (mcd->headerSent)
     return 0;
 
+  MemoryStream memStream (td->auxiliaryBuffer);
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
+  chooseEncoding (mcd->td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
-                           *td->auxiliaryBuffer, td);
+                           *td->buffer, td);
 
   mcd->headerSent = true;
+
+  if (mcd->onlyHeader)
+    return 0;
+
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
+
   return 0;
 }
 

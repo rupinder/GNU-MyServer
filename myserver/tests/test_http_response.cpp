@@ -58,7 +58,7 @@ public:
   {
     HttpResponseHeader header;
     const char * responseStr = "HTTP/1.1 200 Success\r\nContent-Length: 0\r\n\r\n";
-    u_long nbtr;
+    size_t nbtr;
     int ret = HttpHeaders::buildHTTPResponseHeaderStruct (responseStr,
                                                          &header,
                                                          &nbtr);
@@ -71,7 +71,7 @@ public:
   void testJoinField ()
   {
     HttpResponseHeader header;
-    u_long nbtr;
+    size_t nbtr;
     const char * responseStr =
       "HTTP/1.1 200 Success\r\n\
 Content-Length: 0\r\n\
@@ -94,8 +94,8 @@ ToJoin: b\r\n";
   {
     HttpResponseHeader header;
     const char * responseStr = "HTTP/1.1 200 Success\r\nContent-Length: 0\r\n\r\n";
-    u_long nLinesptr;
-    u_long ncharsptr;
+    size_t nLinesptr;
+    size_t ncharsptr;
 
     int ret = HttpHeaders::validHTTPResponse (responseStr,
                                              &nLinesptr,
@@ -108,8 +108,8 @@ ToJoin: b\r\n";
   {
     HttpResponseHeader header;
     const char * responseStr = "Not really HTTP response";
-    u_long nLinesptr;
-    u_long ncharsptr;
+    size_t nLinesptr;
+    size_t ncharsptr;
     int ret;
 
     ret = HttpHeaders::validHTTPResponse (responseStr,
@@ -160,8 +160,8 @@ ToJoin: b\r\n";
     HttpResponseHeader response;
     response.setValue ("foo", "bar");
     response.setValue ("baz", "foo");
-    u_long len = HttpHeaders::buildHTTPResponseHeader (buffer, &response);
-    CPPUNIT_ASSERT_EQUAL (len, (u_long) strlen (buffer));
+    size_t len = HttpHeaders::buildHTTPResponseHeader (buffer, &response);
+    CPPUNIT_ASSERT_EQUAL (len, strlen (buffer));
   }
 };
 

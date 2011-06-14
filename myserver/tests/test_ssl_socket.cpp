@@ -132,9 +132,12 @@ public:
 
   void testRecv ()
   {
+    gnutls_priority_t priority_cache;
+    gnutls_dh_params_t dh_params;
+    gnutls_certificate_credentials_t cred;
+
     Socket *obj = new Socket;
     SslSocket *sslObj = NULL;
-    SSL_CTX *ctx = NULL;;
     ThreadID tid;
 
     int optvalReuseAddr = 1;
@@ -154,19 +157,21 @@ public:
                                       (const char*) &optvalReuseAddr,
                                       sizeof (optvalReuseAddr)) != -1);
 
-    ctx = SSL_CTX_new (SSLv23_server_method ());
 
-    if (SSL_CTX_use_certificate_file (ctx, TESTSERVERPEM, SSL_FILETYPE_PEM) != 1)
-    {
-      SSL_CTX_free (ctx);
-      CPPUNIT_ASSERT (false);
-    }
+    gnutls_certificate_allocate_credentials (&cred);
+    gnutls_priority_init (&priority_cache, "NORMAL", NULL);
 
-    if (SSL_CTX_use_PrivateKey_file (ctx, TESTSERVERKEY, SSL_FILETYPE_PEM) != 1)
-    {
-      SSL_CTX_free (ctx);
-      CPPUNIT_ASSERT (false);
-    }
+    gnutls_dh_params_init (&dh_params);
+    gnutls_dh_params_generate2 (dh_params, 1024);
+    gnutls_certificate_set_dh_params (cred, dh_params);
+
+    gnutls_certificate_set_x509_trust_file (cred, TESTSERVERPEM,
+                                            SSL_FILETYPE_PEM);
+
+    gnutls_certificate_set_x509_key_file (cred, TESTSERVERPEM,
+                                          TESTSERVERKEY,
+                                          GNUTLS_X509_FMT_PEM);
+
 
     /* If the port is used by another program, try a few others.  */
     do
@@ -189,16 +194,15 @@ public:
     Socket s = obj->accept (&sockIn, &sockInLen);
 
     sslObj = new SslSocket (&s);
-    sslObj->setSSLContext (ctx);
+    sslObj->setSSLContext (cred, priority_cache);
 
     int ret = sslObj->sslAccept ();
     if (ret < 0)
-    {
-      delete obj;
-      delete sslObj;
-      SSL_CTX_free (ctx);
-      CPPUNIT_ASSERT (false);
-    }
+      {
+        delete obj;
+        delete sslObj;
+        CPPUNIT_ASSERT (false);
+      }
 
     char buf[32] = {0};
 
@@ -212,11 +216,12 @@ public:
 
     CPPUNIT_ASSERT (obj->close () != -1);
 
-    SSL_CTX_free (ctx);
-
     Thread::join (tid);
     if (!arg.success)
       throw arg.reason;
+
+    gnutls_certificate_free_credentials (cred);
+    gnutls_priority_deinit (priority_cache);
 
     delete obj;
     delete sslObj;

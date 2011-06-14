@@ -285,13 +285,9 @@ int WebDAV::propfind (HttpThreadContext* td)
 
   try
     {
-      bool keepalive, useChunks;
       size_t nbw, nbw2;
-      FiltersChain chain;
-      list<string> filters;
-      FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       vector <const char *> propReq;
-
+      FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
       /* Obtain the payload.  */
       XmlParser p;
       if (p.open (td->inputData.getFilename (), 0) < 0)
@@ -300,15 +296,19 @@ int WebDAV::propfind (HttpThreadContext* td)
       /* Obtain xml entities in the payload.  */
       getElements (xmlDocGetRootElement (p.getDoc ()), &propReq);
 
-      ff->chain (&chain, filters, td->connection->socket, &nbw, 1);
+      char tmpBuf[1024];
+      MemBuf memBuf;
+      MemoryStream memStream (&memBuf);
+      memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+      HttpDataHandler::generateFiltersChain (td, ff, td->mime, memStream);
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       td->response.httpStatus = 207;
-      if (keepalive)
-        td->response.setValue ("connection", "keep-alive");
-      else
-        td->response.setValue ("connection", "close");
-      HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
+
+      HttpDataHandler::chooseEncoding (td);
+      HttpHeaders::sendHeader (td->response, *td->outputChain.getStream (),
+                               *td->buffer, td);
+
+      td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
       /* Determine the Depth.  */
       MemBuf tmp;
@@ -335,26 +335,21 @@ int WebDAV::propfind (HttpThreadContext* td)
           if (nbr == 0)
             break;
 
-          HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                    nbr, &(td->outputData),
-                                                    &chain, td->appendOutputs,
-                                                    useChunks);
-
-          td->sentData += nbr;
-
+          td->sentData +=
+            HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                      nbr);
           if (nbr != td->buffer->getRealLength ())
             break;
         }
 
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream);
 
       return HttpDataHandler::RET_OK;
     }
   catch (exception & e)
     {
       td->connection->host->warningsLogWrite ( _E ("WebDAV: Internal Error"), &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 }
 
@@ -583,9 +578,8 @@ int WebDAV::lock (HttpThreadContext* td)
     {
       Sha1 sha1;
       vector <const char*> propReq;
-      bool keepalive, useChunks;
       size_t nbw, nbw2;
-      FiltersChain chain;
+      FiltersChain &chain = td->outputChain;
       list<string> filters;
       FiltersFactory *ff = Server::getInstance ()->getFiltersFactory ();
 
@@ -623,18 +617,9 @@ int WebDAV::lock (HttpThreadContext* td)
 
       ff->chain (&chain, filters, td->connection->socket, &nbw, 1);
 
-      HttpDataHandler::checkDataChunks (td, &keepalive, &useChunks);
       td->response.httpStatus = 201;
 
-      if (keepalive)
-        td->response.setValue ("connection", "keep-alive");
-      else
-        td->response.setValue ("connection", "close");
-
-        td->response.setValue ("Lock-Token", urn);
-
-        td->response.setValue ("Content-Type", "text/xml");
-
+      HttpDataHandler::chooseEncoding (td);
       HttpHeaders::sendHeader (td->response, *chain.getStream (), *td->buffer, td);
 
       string lc = "http://" + *td->request.getValue ("Host", NULL) + td->request.uri;
@@ -656,18 +641,13 @@ int WebDAV::lock (HttpThreadContext* td)
           if (nbr == 0)
             break;
 
-          HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                    nbr, &(td->outputData),
-                                                    &chain, td->appendOutputs,
-                                                    useChunks);
-          td->sentData += nbr;
-
-          if (nbr != td->buffer->getRealLength ())
-            break;
+          td->sentData +=
+            HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                      nbr);
         }
 
-      if (useChunks && chain.getStream ()->write ("0\r\n\r\n", 5, &nbw2))
-        return HttpDataHandler::RET_FAILURE;
+      MemoryStream memStream (td->auxiliaryBuffer);
+      td->sentData += HttpDataHandler::completeHTTPResponse (td, memStream);
 
       return HttpDataHandler::RET_OK;
     }

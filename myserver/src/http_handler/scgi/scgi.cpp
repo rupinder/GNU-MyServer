@@ -45,7 +45,7 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
                const char *cgipath, bool execute, bool onlyHeader)
 {
   ScgiContext con;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
 
   string outDataPath;
 
@@ -68,18 +68,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
       FilesUtility::splitPath (tmp, td->cgiRoot, td->cgiFile);
       tmp.assign (scriptpath);
       FilesUtility::splitPath (tmp, td->scriptDir, td->scriptFile);
-
-      chain.setStream (td->connection->socket);
-      if (td->mime)
-        {
-          size_t nbw;
-          if (td->mime)
-            Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                                 td->mime->filters,
-                                                                 td->connection->socket,
-                                                                 &nbw,
-                                                                 1);
-        }
 
       td->buffer->setLength (0);
       td->auxiliaryBuffer->getAt (0) = '\0';
@@ -166,7 +154,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
       if (sizeEnvString == -1)
         {
           td->connection->host->warningsLogWrite (_("SCGI: internal error"));
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -179,7 +166,6 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
           td->connection->host->warningsLogWrite
             (_E ("SCGI: error connecting to the process %s"),
              cmdLine.str ().c_str (), &e);
-          chain.clearAllFilters ();
           return td->http->raiseHTTPError (500);
         }
 
@@ -188,17 +174,14 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
           && !td->request.contentLength.compare ("0"))
         sendPostData (&con);
 
-      sendResponse (&con, onlyHeader, &chain);
+      sendResponse (&con, onlyHeader);
 
-      chain.clearAllFilters ();
       con.tempOut.close ();
       con.sock.close ();
     }
   catch (exception & e)
     {
-      td->connection->host->warningsLogWrite (_E ("SCGI: internal error"), &e);
-      chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return HttpDataHandler::RET_OK;
@@ -208,19 +191,15 @@ int Scgi::send (HttpThreadContext* td, const char* scriptpath,
 /*!
   Send the response to the client.
  */
-int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
+int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader)
 {
+  HttpThreadContext* td = ctx->td;
   clock_t initialTicks = getTicks ();
-  bool useChunks = false;
-  bool keepalive = false;
   u_long read = 0;
   u_long headerSize = 0;
   u_long tmpHeaderSize = 0;
   size_t nbw, nbr;
-  u_long sentData = 0;
-  HttpThreadContext* td = ctx->td;
-
-  checkDataChunks (td, &keepalive, &useChunks);
+  MemoryStream memStream (td->auxiliaryBuffer);
 
   for (;;)
     {
@@ -261,21 +240,22 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                                 &td->response,
                                                 &(td->nBytesToRead));
 
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
+  chooseEncoding (td);
   HttpHeaders::sendHeader (td->response, *td->connection->socket,
-                           *td->auxiliaryBuffer, td);
+                           *td->buffer, td);
 
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
 
-  if (read - headerSize)
-    appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
-                             read - headerSize,
-                             &(td->outputData),
-                             chain,
-                             td->appendOutputs,
-                             useChunks);
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
-  sentData += read - headerSize;
+  if (read - headerSize)
+    td->sentData +=
+      appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer () + headerSize,
+                               read - headerSize);
 
   if (td->response.getStatusType () == HttpResponseHeader::SUCCESSFUL)
     {
@@ -285,24 +265,16 @@ int Scgi::sendResponse (ScgiContext* ctx, bool onlyHeader, FiltersChain* chain)
                                 td->auxiliaryBuffer->getRealLength (),
                                 0);
 
-          if (!nbr || (nbr == (size_t)-1))
+          if (!nbr || (nbr == (size_t) -1))
             break;
 
-          appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
-                                   nbr,
-                                   &(td->outputData),
-                                   chain,
-                                   td->appendOutputs,
-                                   useChunks);
-
-          sentData += nbr;
+          td->sentData +=
+            appendDataToHTTPChannel (td, td->auxiliaryBuffer->getBuffer (),
+                                     nbr);
         }
 
-      if (!td->appendOutputs && useChunks)
-        chain->getStream ()->write ("0\r\n\r\n", 5, &nbw);
+      td->sentData += completeHTTPResponse (td, memStream);
     }
-  /* For logging activity.  */
-  td->sentData += sentData;
 
   return HttpDataHandler::RET_OK;
 }

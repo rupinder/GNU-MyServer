@@ -49,9 +49,6 @@ int HttpFile::putFile (HttpThreadContext* td, string& filename)
 
   try
   {
-    if (td->request.isKeepAlive ())
-      td->response.setValue ("connection", "keep-alive");
-
     if (!(td->permissions & MYSERVER_PERMISSION_WRITE))
       return td->http->sendAuth ();
 
@@ -132,7 +129,7 @@ int HttpFile::putFile (HttpThreadContext* td, string& filename)
     {
       td->connection->host->warningsLogWrite (_E ("HttpFile: internal error"),
                                               &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     };
 }
 
@@ -149,20 +146,20 @@ int HttpFile::deleteFile (HttpThreadContext* td,
       if (! (td->permissions & MYSERVER_PERMISSION_DELETE))
         return td->http->sendAuth ();
 
-      if (FilesUtility::nodeExists (td->filenamePath))
+      if (! FilesUtility::nodeExists (td->filenamePath))
+        return td->http->raiseHTTPError (204);
+      else
         {
           FilesUtility::deleteFile (td->filenamePath.c_str ());
           return td->http->raiseHTTPError (202);
         }
-      else
-        return td->http->raiseHTTPError (204);
     }
   catch (exception & e)
     {
       td->connection->host->warningsLogWrite
         (_E ("HttpFile: cannot delete file %s"),
          td->filenamePath.c_str (), &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     };
 }
 
@@ -204,16 +201,12 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
   size_t bytesToSend;
   off_t firstByte = td->request.rangeByteBegin;
   off_t lastByte = td->request.rangeByteEnd;
-  bool keepalive = false;
-  bool useChunks = false;
-  bool useModifiers = false;
+  bool fastCopyAllowed;
   MemoryStream memStream (td->auxiliaryBuffer);
-  FiltersChain chain;
-  size_t nbw;
+  FiltersChain &chain = td->outputChain;
   size_t nbr;
   time_t lastMT;
   string tmpTime;
-  u_long dataSent = 0;
 
   try
     {
@@ -274,18 +267,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     if (etagHeader && !etagHeader->value.compare (etag))
       return td->http->sendHTTPNonModified ();
     else
-      {
-        HttpResponseHeader::Entry *e = td->response.other.get ("etag");
-        if (e)
-          e->value.assign (etag);
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("etag");
-            e->value.assign (etag);
-            td->response.other.put (e->name, e);
-          }
-      }
+      td->response.setValue ("etag", etag.c_str ());
 
     if (lastByte == 0)
       lastByte = filesize;
@@ -293,8 +275,6 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       lastByte = std::min (lastByte + 1, filesize);
 
     bytesToSend = lastByte - firstByte;
-
-    keepalive = td->request.isKeepAlive ();
 
     td->buffer->setLength (0);
 
@@ -318,75 +298,22 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
             td->response.other.put (e->name, e);
           }
       }
-    chain.setStream (&memStream);
-    if (td->mime)
-      {
-        HttpRequestHeader::Entry* e = td->request.other.get ("accept-encoding");
-        if (td->mime)
-          Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                               td->mime->filters,
-                                                               &memStream,
-                                                               &nbw, 0,
-                                                               e ? &e->value : NULL);
-        memStream.refresh ();
-        dataSent += nbw;
-      }
 
-    useModifiers = chain.hasModifiersFilters ();
-    if (!useModifiers)
+    generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                          td->mime, memStream);
+
+    fastCopyAllowed = chain.isEmpty ()
+      && td->connection->socket->getThrottling () == 0
+      && !(td->http->getProtocolOptions () & Protocol::SSL);
+
+    if (! chain.hasModifiersFilters ())
       {
         ostringstream buffer;
         buffer << bytesToSend;
         td->response.contentLength.assign (buffer.str ());
       }
 
-    if (keepalive)
-      td->response.setValue ("connection", "keep-alive");
-    else
-      td->response.setValue ("connection", "close");
-
-    if (useModifiers)
-      {
-        string s;
-        HttpResponseHeader::Entry *e;
-        chain.getName (s);
-        e = td->response.other.get ("content-encoding");
-
-        if (e)
-          e->value.assign (s);
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("content-encoding");
-            e->value.assign (s);
-            td->response.other.put (e->name, e);
-          }
-        /* Do not use chunked transfer with old HTTP/1.0 clients.  */
-        if (keepalive)
-          useChunks = true;
-      }
-
-    if (useChunks)
-      {
-        HttpResponseHeader::Entry *e;
-        e = td->response.other.get ("transfer-encoding");
-        if (e)
-          e->value.assign ("chunked");
-        else
-          {
-            e = new HttpResponseHeader::Entry ();
-            e->name.assign ("transfer-encoding");
-            e->value.assign ("chunked");
-            td->response.other.put (e->name, e);
-          }
-      }
-    else
-      {	HttpResponseHeader::Entry *e;
-        e = td->response.other.remove ("transfer-encoding");
-        if (e)
-          delete e;
-      }
-
+    chooseEncoding (td, fastCopyAllowed);
     HttpHeaders::sendHeader (td->response, *td->connection->socket,
                              *td->buffer, td);
 
@@ -396,9 +323,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
     */
     if (onlyHeader)
       {
-        file->close ();
         delete file;
-        chain.clearAllFilters ();
         return HttpDataHandler::RET_OK;
       }
 
@@ -406,8 +331,7 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
       Check if there are all the conditions to use a direct copy from the
       file to the socket.
     */
-    if (!useChunks && chain.isEmpty () && !td->appendOutputs
-        && !(td->http->getProtocolOptions () & Protocol::SSL))
+    if (fastCopyAllowed)
       {
         size_t nbw = 0;
         file->fastCopyToSocket (td->connection->socket, firstByte,
@@ -425,111 +349,44 @@ int HttpFile::send (HttpThreadContext* td, const char *filenamePath,
 
     file->seek (firstByte);
 
-    if (td->appendOutputs)
-      chain.setStream (&(td->outputData));
-    else
-      chain.setStream (td->connection->socket);
-
-    /*
-      Flush initial data.  This is data that filters could have added
-      and we have to send before the file itself, for example the gzip
-      filter add a header to file.
-    */
-    if (memStream.availableToRead ())
-      {
-        memStream.read (td->buffer->getBuffer (),
-                        td->buffer->getRealLength (), &nbr);
-
-        memStream.refresh ();
-        if (nbr)
-          HttpDataHandler::appendDataToHTTPChannel (td,
-                                                    td->buffer->getBuffer (),
-                                                    nbr, &(td->outputData),
-                                                    &chain, td->appendOutputs,
-                                                    useChunks);
-      } /* memStream.availableToRead ().  */
+    td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
 
     /* Flush the rest of the file.  */
     for (;;)
       {
         size_t nbr;
-        size_t nbw;
 
         /* Check if there are other bytes to send.  */
-        if (bytesToSend)
+        if (! bytesToSend)
+          break;
+
+        /* Read from the file the bytes to send.  */
+        size_t size = std::min (td->buffer->getRealLength (), bytesToSend);
+
+        file->read (td->buffer->getBuffer (), size, &nbr);
+        if (nbr == 0)
           {
-            /* Read from the file the bytes to send.  */
-            size_t size = std::min (bytesToSend,
-                                    td->buffer->getRealLength () / 2);
-
-            file->read (td->buffer->getBuffer (), size, &nbr);
-            if (nbr == 0)
-              {
-                bytesToSend = 0;
-                continue;
-              }
-
-            bytesToSend -= nbr;
-
-            appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                           nbr, &(td->outputData), &chain, td->appendOutputs,
-                               useChunks, td->buffer->getRealLength (), &memStream);
-            dataSent += nbr;
+            bytesToSend = 0;
+            continue;
           }
-        else /* if (bytesToSend) */
-          {
-            /* If we don't use chunks we can flush directly.  */
-            if (!useChunks)
-              {
-                chain.flush (&nbw);
-                break;
-              }
-            else
-              {
-                /*
-                  Replace the final stream before the flush and write to a
-                  memory buffer, after all the data is flushed from the
-                  chain we can replace the stream with the original one and
-                  write there the HTTP data chunk.
-                */
-                Stream* tmpStream = chain.getStream ();
-                chain.setStream (&memStream);
-                memStream.refresh ();
-                chain.flush (&nbw);
 
-                chain.setStream (tmpStream);
-                memStream.read (td->buffer->getBuffer (),
-                                td->buffer->getRealLength (), &nbr);
+        bytesToSend -= nbr;
 
-                HttpDataHandler::appendDataToHTTPChannel (td,
-                                                       td->buffer->getBuffer (),
-                                                       nbr, &(td->outputData),
-                                                       &chain, td->appendOutputs,
-                                                          useChunks);
-                break;
-              }
-          }
-        memStream.refresh ();
+        td->sentData += appendDataToHTTPChannel (td, td->buffer->getBuffer (),
+                                                 nbr);
       }/* End for loop.  */
+
+    td->sentData += completeHTTPResponse (td, memStream);
 
     file->close ();
     delete file;
   }
   catch (exception & e)
     {
-      if (file)
-        {
-          file->close ();
-          delete file;
-        }
       chain.clearAllFilters ();
-      td->connection->host->warningsLogWrite (_E ("HttpFile: internal error"),
-                                              &e);
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
-  /* For logging activity.  */
-  td->sentData += dataSent;
   chain.clearAllFilters ();
 
   return HttpDataHandler::RET_OK;

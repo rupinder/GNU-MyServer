@@ -123,6 +123,26 @@ int HomeDir::load ()
   return ret;
 }
 
+void HomeDir::getLoginName (string &username)
+{
+  username.assign ("");
+#ifdef WIN32
+  char login[1024];
+  DWORD sz = sizeof (login);
+
+  if (GetUserName (login, &sz))
+    username.assign (login);
+
+  return;
+#else
+  const char *login = getlogin ();
+  if (login)
+    username.assign (login);
+
+  return;
+#endif
+}
+
 /*!
   Load the internal buffer.
  */
@@ -246,14 +266,11 @@ int HomeDir::getHomeDir (string& userName, string& out)
   return FilesUtility::nodeExists (out.c_str ()) ? 0 : 1;
 #elif HAVE_GETPWNAM
   struct passwd *p;
-  int ret = 0;
 
   loadMutex.lock ();
   errno = 0;
   p = ::getpwnam (userName.c_str ());
-  if (p == NULL)
-    ret = 1;
-  else
+  if (p != NULL)
     out.assign (p->pw_dir);
 
   loadMutex.unlock ();

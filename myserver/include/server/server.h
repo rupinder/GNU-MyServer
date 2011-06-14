@@ -233,7 +233,7 @@ private:
   u_long buffersize;
 
   /* Buffer that contains all the local machine IP values.  */
-  string *ipAddresses;
+  string ipAddresses;
   char serverName[HOST_NAME_MAX + 1];
   string* path;
   int initialize ();

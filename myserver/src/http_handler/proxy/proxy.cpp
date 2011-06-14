@@ -19,7 +19,6 @@
 #include <include/http_handler/proxy/proxy.h>
 
 #include <include/base/string/stringutils.h>
-
 #include <include/protocol/http/http_thread_context.h>
 #include <include/protocol/http/http.h>
 #include <include/protocol/url.h>
@@ -49,7 +48,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
   Url destUrl (exec, 80);
   ConnectionPtr con = NULL;
   Socket *sock;
-  FiltersChain chain;
+  FiltersChain &chain = td->outputChain;
   HttpRequestHeader req;
   size_t nbw;
   bool keepalive = false;
@@ -116,6 +115,8 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 
       sock = con->socket;
 
+      req.clearValue ("accept-encoding");
+
       u_long hdrLen =
         HttpHeaders::buildHTTPRequestHeader (td->auxiliaryBuffer->getBuffer (),
                                              &req);
@@ -126,18 +127,8 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       if (td->request.uriOptsPtr)
         td->inputData.fastCopyToSocket (sock, 0, td->auxiliaryBuffer, &nbw);
 
-      chain.setStream (td->connection->socket);
-      if (td->mime)
-        Server::getInstance ()->getFiltersFactory ()->chain (&chain,
-                                                             td->mime->filters,
-                                                             td->connection->socket,
-                                                             &nbw,
-                                                             1);
-
 
       flushToClient (td, *sock, chain, onlyHeader, &keepalive);
-
-      chain.clearAllFilters ();
 
       addConnection (con, destUrl.getHost ().c_str (), destUrl.getPort (),
                      keepalive);
@@ -149,8 +140,7 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
       if (con)
         addConnection (con, destUrl.getHost ().c_str (), destUrl.getPort (),
                        false);
-      chain.clearAllFilters ();
-      return td->http->raiseHTTPError (500);
+      return HttpDataHandler::RET_FAILURE;
     }
 
   return HttpDataHandler::RET_OK;
@@ -159,34 +149,45 @@ int Proxy::send (HttpThreadContext *td, const char* scriptpath,
 /*!
   Flush the server reply to the client.
  */
-int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
+int Proxy::flushToClient (HttpThreadContext* td, Socket &client,
                           FiltersChain &out, bool onlyHeader, bool *kaClient)
 {
-  u_long read = 0;
-  u_long headerLength;
+  size_t read = 0;
+  size_t headerLength;
   int ret;
   size_t nbw;
-  bool useChunks = false;
-  bool keepalive = false;
+  bool validResponse = false;
+  size_t contentLength = (size_t) - 1;
+
 
   td->response.free ();
-  do
+
+  for (;;)
     {
       ret = client.recv (td->auxiliaryBuffer->getBuffer () + read,
-                         td->auxiliaryBuffer->getRealLength () - read,
+                         td->auxiliaryBuffer->getRealLength () - read - 1,
                          0,
                          td->http->getTimeout ());
 
+      if (ret == 0)
+        break;
+
       read += ret;
 
-      if (HttpHeaders::buildHTTPResponseHeaderStruct
-          (td->auxiliaryBuffer->getBuffer (), &td->response, &headerLength))
+      td->auxiliaryBuffer->getBuffer ()[read] = '\0';
+
+      validResponse = HttpHeaders::buildHTTPResponseHeaderStruct
+        (td->auxiliaryBuffer->getBuffer (), &td->response, &headerLength);
+
+      if (validResponse)
         break;
     }
-  while (ret);
 
   if (read == 0)
     return td->http->raiseHTTPError (500);
+
+  if (td->response.contentLength.length ())
+    contentLength = atoll (td->response.contentLength.c_str ());
 
   string *tmp = td->request.getValue ("Host", NULL);
   const char *via = tmp ? tmp->c_str () : td->connection->getLocalIpAddr ();
@@ -213,34 +214,28 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
       transferEncoding.assign (*tmp);
     }
 
+  char tmpBuf[1024];
+  MemBuf memBuf;
+  MemoryStream memStream (&memBuf);
+  memBuf.setExternalBuffer (tmpBuf, sizeof (tmpBuf));
+  generateFiltersChain (td, Server::getInstance ()->getFiltersFactory (),
+                        td->mime, memStream);
+
   /* At this point we can modify the response struct before send it to the
      client.  */
-  checkDataChunks (td, &keepalive, &useChunks);
-  if (td->response.contentLength.length ())
-    useChunks = false;
-
-  td->response.setValue ("Connection", keepalive ? "keep-alive" : "close");
-
-  if (useChunks)
-    td->response.setValue ("Transfer-encoding", "chunked");
-  else
-    td->response.clearValue ("Transfer-encoding");
-
-  u_long hdrLen = HttpHeaders::buildHTTPResponseHeader (td->buffer->getBuffer (),
-                                                        &td->response);
-
-  out.getStream ()->write (td->buffer->getBuffer (), hdrLen, &nbw);
+  chooseEncoding (td, td->response.contentLength.length ());
+  HttpHeaders::sendHeader (td->response, *out.getStream (), *td->buffer, td);
 
   if (onlyHeader)
     return HttpDataHandler::RET_OK;
 
-  readPayLoad (td, &td->response, &out, &client,
+  td->sentData += HttpDataHandler::beginHTTPResponse (td, memStream);
+
+  readPayLoad (td, &td->response, &client,
                td->auxiliaryBuffer->getBuffer () + headerLength,
-               read - headerLength, td->http->getTimeout (),
-               useChunks, keepalive,
+               read - headerLength, td->http->getTimeout (), contentLength,
                hasTransferEncoding ? &transferEncoding : NULL);
 
-  td->sentData += ret;
   return HttpDataHandler::RET_OK;
 }
 
@@ -249,13 +244,12 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
 
   \param td The current HTTP thread context.
   \param res Response obtained by the server.
-  \param out The client chain.
   \param initBuffer Initial read data.
   \param initBufferSize Size of initial data.
   \param timeout Connection timeout.
-  \param useChunks Use chunked transfer encoding
   with the client.
-  \param keepalive The connection is keep-alive.
+  \param contentLength The Content-Length specified by
+  the client, if any.
   \param serverTransferEncoding Transfer-encoding
   used by the server.
 
@@ -264,37 +258,18 @@ int Proxy::flushToClient (HttpThreadContext* td, Socket& client,
  */
 int Proxy::readPayLoad (HttpThreadContext* td,
                         HttpResponseHeader* res,
-                        FiltersChain *out,
                         Socket *client,
                         const char *initBuffer,
                         u_long initBufferSize,
                         int timeout,
-                        bool useChunks,
-                        bool keepalive,
+                        size_t contentLength,
                         string *serverTransferEncoding)
 {
-  size_t contentLength = 0;
-
-  size_t nbr = 0, nbw = 0, length = 0, inPos = 0;
-  u_long bufferDataSize = 0;
-  u_long written = 0;
+  size_t nbr = 0, nbw = 0, inPos = 0;
 
   /* Only the chunked transfer encoding is supported.  */
   if (serverTransferEncoding && serverTransferEncoding->compare ("chunked"))
     return HttpDataHandler::RET_FAILURE;
-
-  if (res->contentLength.length ())
-    {
-      contentLength = atoll (res->contentLength.c_str ());
-      if (contentLength < 0)
-        return HttpDataHandler::RET_FAILURE;
-    }
-
-  length = contentLength;
-
-  bufferDataSize = (td->nBytesToRead < td->buffer->getRealLength () - 1
-                    ? td->nBytesToRead
-                    : td->buffer->getRealLength () - 1 ) - td->nHeaderChars;
 
   /* If it is specified a transfer encoding read data using it.  */
   if (serverTransferEncoding)
@@ -314,23 +289,23 @@ int Proxy::readPayLoad (HttpThreadContext* td,
               if (!nbr)
                 break;
 
-              HttpDataHandler::appendDataToHTTPChannel (td,
-                                                       td->buffer->getBuffer (),
-                                                       nbr, &(td->outputData),
-                                                       out, td->appendOutputs,
-                                                       useChunks);
-              written += nbr;
+              td->sentData +=
+                HttpDataHandler::appendDataToHTTPChannel (td,
+                                                      td->buffer->getBuffer (),
+                                                          nbr);
             }
         }
     }
   else
     {
+      size_t length = contentLength;
+
       /* If it is not specified an encoding, read the data as it is.  */
       for (;;)
         {
           u_long len = td->buffer->getRealLength () - 1;
 
-          if (contentLength && length < len)
+          if (contentLength != ((size_t) -1) && length < len)
             len = length;
 
           if (len == 0)
@@ -338,8 +313,8 @@ int Proxy::readPayLoad (HttpThreadContext* td,
 
           int timedOut =
             HttpDataRead::readContiguousPrimitivePostData (initBuffer, &inPos,
-                                                           initBufferSize, client,
-                                                           td->buffer->getBuffer (),
+                                                       initBufferSize, client,
+                                                     td->buffer->getBuffer (),
                                                            len, &nbr, timeout);
 
           if (contentLength == 0 && nbr == 0)
@@ -348,17 +323,16 @@ int Proxy::readPayLoad (HttpThreadContext* td,
           if (length)
             length -= nbr;
 
-          HttpDataHandler::appendDataToHTTPChannel (td, td->buffer->getBuffer (),
-                                                    nbr, &(td->outputData), out,
-                                                    td->appendOutputs, useChunks);
-          written += nbr;
-
-          if (timedOut || contentLength && length == 0)
+          td->sentData +=
+            HttpDataHandler::appendDataToHTTPChannel (td,
+                                             td->buffer->getBuffer (), nbr);
+          if (timedOut || contentLength != ((size_t) -1) && length == 0)
             break;
         }
     }
-  if (useChunks)
-    out->getStream ()->write ("0\r\n\r\n", 5, &nbw);
+
+  MemoryStream memStream (td->auxiliaryBuffer);
+  td->sentData += completeHTTPResponse (td, memStream);
 
   return HttpDataHandler::RET_OK;
 }
