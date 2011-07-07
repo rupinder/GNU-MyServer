@@ -86,6 +86,14 @@ public:
   void setDocumentRoot (const char* n)
   {documentRoot.assign (n);}
 
+  /*! Get the cache root. */
+  const string& getCacheRoot ()
+  {return cacheRoot;}
+
+  /*! Set the cache root. */
+  void setCacheRoot (const char* n)
+  {cacheRoot.assign (n);}
+
   /*! Get a pointer to the vhost SSL context. */
   SslContext *getVhostSSLContext ()
   {return &sslContext;}
@@ -257,6 +265,9 @@ private:
 
   /*! Path to the system root. */
   string systemRoot;
+
+  /*! Path to the cache root. */
+  string cacheRoot;
 
   /*! Description or name of the virtual host. */
   string name;

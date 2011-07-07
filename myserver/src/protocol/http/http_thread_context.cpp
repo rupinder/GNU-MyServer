@@ -67,6 +67,21 @@ const char *HttpThreadContext::getVhostSys ()
   return "";
 }
 
+/*!
+  Get the current vhost cache directory for the environvment.
+ */
+const char *HttpThreadContext::getVhostCache ()
+{
+  if (vhostCache.length () > 1)
+    return vhostCache.c_str ();
+
+  if (connection && connection->host)
+    return connection->host->getCacheRoot ().c_str ();
+
+  return "";
+}
+
+
 HttpThreadContext::~HttpThreadContext ()
 {
   outputChain.clearAllFilters ();

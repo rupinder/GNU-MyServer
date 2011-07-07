@@ -445,6 +445,18 @@ int XmlVhostHandler::load (const char *filename)
 
               vh->setSystemRoot ((const char *)lcur->children->content);
             }
+          else if (!xmlStrcmp (lcur->name, (const xmlChar *) "CACHEROOT"))
+            {
+              char* lastChar = (char *) lcur->children->content;
+
+              while (*(lastChar+1) != '\0')
+                lastChar++;
+
+              if (*lastChar == '\\' || *lastChar == '/')
+                *lastChar = '\0';
+
+              vh->setCacheRoot ((const char *)lcur->children->content);
+            }
           else if (!xmlStrcmp (lcur->name, (const xmlChar *) "ACCESSLOG"))
             {
               loadXMLlogData ("ACCESSLOG", vh, lcur);

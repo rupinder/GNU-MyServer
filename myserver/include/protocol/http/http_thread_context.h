@@ -91,6 +91,7 @@ struct HttpThreadContext
   string scriptFile;
   string vhostDir;
   string vhostSys;
+  string vhostCache;
   HashMap<string,string*> other;
   char identity[32];
   File inputData;
@@ -104,6 +105,7 @@ struct HttpThreadContext
   ~HttpThreadContext ();
   const char* getVhostDir ();
   const char* getVhostSys ();
+  const char* getVhostCache ();
   const char* getData (const char *name);
 };
 
